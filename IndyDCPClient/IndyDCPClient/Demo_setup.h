@@ -8,10 +8,6 @@
 #define DEGREE  (M_PI/180)
 
 #define TELEOPERATION
-//#define TASK_SPACE_CONTROL
-//#define TASK_SPACE_CONTROL_OFFLINE
-//#define NULL_MOTION
-//#define POINT_BASED_METHOD
 
 #if defined(NULL_MOTION)
 #define __IndyRP2__

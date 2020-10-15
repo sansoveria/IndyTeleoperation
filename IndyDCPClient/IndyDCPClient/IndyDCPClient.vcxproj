@@ -151,13 +151,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CustomIndyDCPClient.h" />
     <ClInclude Include="Demo_setup.h" />
-    <ClInclude Include="MotionGenerator.h" />
     <ClInclude Include="NRMK_IndyDCPClient.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Timer.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CustomIndyDCPClient.cpp" />
     <ClCompile Include="IndyDCPClient.cpp" />
     <ClCompile Include="NRMK_IndyDCPClient.cpp" />
     <ClCompile Include="pch.cpp">
