@@ -103,6 +103,8 @@ public:
 		//[DONGHYEON] Teleoperation
 		CMD_TOGGLE_TELEOPERATION_MODE = 570,
 		CMD_SET_REF_POSE = 571,
+		CMD_RAISE_EXT_WRENCH = 578,
+		CMD_REDUCE_EXT_WRENCH = 579,
 		//[DONGHYEON] Teleoperation
 
 		CMD_SET_SYNC_MODE = 700,
@@ -232,30 +234,21 @@ public:
 	//// Basic
 	bool isReady();
 	bool isMoveFinished();
-	bool isProgramRunning();
-	void GoHome();
-	void GoZero();
-	void StartDirectTeaching();
-	void StopDirectTeaching();
 	//// Info
 	double *GetJointPos();
 	double *GetTaskPos();
 	double *GetJointVel();
 	double *GetTaskVel();
 	double *GetTorque();
-	//// Move
-	void MoveByJ(int numJoint, char dir, float dist);
-	void MoveByT(double *coordinate);
-
-	void MoveToT(float *arr);
-	void MoveToJ(float *arr);
 	
 	//// For Extended
 	void TrackTrajectory(std::string filename);
 
 #ifdef TELEOPERATION
 	void ToggleTeleoperationMode();
-	void SetRefState(double *pos, double *vel);
+	double * SetRefState(double *pos, double *vel);
+	void RaiseExtWrench();
+	void ReduceExtWrench();
 #endif
 
 }; /* end of class */

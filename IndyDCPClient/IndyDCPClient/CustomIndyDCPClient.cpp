@@ -250,8 +250,8 @@ double *CustomIndyDedicatedTCPTestClient::GetJointPos() {
 		return &resData.double6dArr[0];
 	}
 	double zeros[6] = { 0 };
-	return zeros;
 	LeaveCriticalSection(&DCP_cs);
+	return zeros;
 }
 
 double *CustomIndyDedicatedTCPTestClient::GetJointVel() {
@@ -268,8 +268,8 @@ double *CustomIndyDedicatedTCPTestClient::GetJointVel() {
 		return &resData.double6dArr[0];
 	}
 	double zeros[6] = { 0 };
-	return zeros;
 	LeaveCriticalSection(&DCP_cs);
+	return zeros;
 }
 
 double *CustomIndyDedicatedTCPTestClient::GetTaskPos() {
@@ -286,8 +286,8 @@ double *CustomIndyDedicatedTCPTestClient::GetTaskPos() {
 		return &resData.double6dArr[0];
 	}
 	double zeros[6] = { 0 };
-	return zeros;
 	LeaveCriticalSection(&DCP_cs);
+	return zeros;
 }
 
 double *CustomIndyDedicatedTCPTestClient::GetTaskVel() {
@@ -304,8 +304,8 @@ double *CustomIndyDedicatedTCPTestClient::GetTaskVel() {
 		return &resData.double6dArr[0];
 	}
 	double zeros[6] = { 0 };
-	return zeros;
 	LeaveCriticalSection(&DCP_cs);
+	return zeros;
 }
 
 double *CustomIndyDedicatedTCPTestClient::GetTorque() {
@@ -321,8 +321,8 @@ double *CustomIndyDedicatedTCPTestClient::GetTorque() {
 		return &resData.double6dArr[0];
 	}
 	double zeros[6] = { 0 };
-	return zeros;
 	LeaveCriticalSection(&DCP_cs);
+	return zeros;
 }
 
 bool CustomIndyDedicatedTCPTestClient::isReady() {
@@ -359,99 +359,6 @@ bool CustomIndyDedicatedTCPTestClient::isMoveFinished() {
 	return res;
 }
 
-void CustomIndyDedicatedTCPTestClient::GoHome(){
-	EnterCriticalSection(&DCP_cs);
-	// Go Home command		
-	Run(CMD_MOVE_HOME, 0);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::GoZero(){
-	EnterCriticalSection(&DCP_cs);
-	// Go Zero command		
-	Run(CMD_MOVE_ZERO, 0);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::StartDirectTeaching() {
-	EnterCriticalSection(&DCP_cs);
-	Run(CMD_CHANGE_DIRECT_TEACHING, 0);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::StopDirectTeaching() {
-	EnterCriticalSection(&DCP_cs);
-	Run(CMD_FINISH_DIRECT_TEACHING, 0);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::MoveByJ(int numJoint, char dir, float dist){
-	EnterCriticalSection(&DCP_cs);
-	double joints[6];
-	for (int i = 0; i < 6; i++) {
-		if (i == numJoint) {
-			joints[i] = dist;
-		}
-		else {
-			joints[i] = 0;
-		}
-	}
-
-	double _dir;
-	dir == 'P' ? _dir = 1 : _dir = -1;
-
-	header.val.cmdId = CMD_JOINT_MOVE_BY;
-	header.val.dataSize = sizeof(double)*6;
-
-	for (int i = 0; i < 6; i++) {
-		data.double6dArr[i] = joints[i] * _dir;
-	}
-
-	Run(header.val.cmdId, header.val.dataSize);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::MoveByT(double* coordinate)
-{
-	EnterCriticalSection(&DCP_cs);
-	
-	header.val.cmdId = CMD_TASK_MOVE_BY;
-	header.val.dataSize = sizeof(double) * 6;
-
-	for (int i = 0; i < 6; i++) {
-		data.double6dArr[i] = coordinate[i];
-	}
-
-	Run(header.val.cmdId, header.val.dataSize);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::MoveToT(float *arr){
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_TASK_MOVE_TO;
-	header.val.dataSize = sizeof(double)*6;
-
-	for (int i = 0; i < 6; i++) {
-		data.double6dArr[i] = arr[i];
-	}
-
-	Run(header.val.cmdId, header.val.dataSize);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-void CustomIndyDedicatedTCPTestClient::MoveToJ(float *arr){
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_JOINT_MOVE_TO;
-	header.val.dataSize = sizeof(double)*6;
-
-	for (int i = 0; i < 6; i++) {
-		data.double6dArr[i] = arr[i];
-	}
-
-	Run(header.val.cmdId, header.val.dataSize);
-	LeaveCriticalSection(&DCP_cs);
-}
-
 void CustomIndyDedicatedTCPTestClient::TrackTrajectory(std::string filename) {
 	EnterCriticalSection(&DCP_cs);
 	header.val.cmdId = CMD_FOR_EXTENDED;
@@ -478,7 +385,8 @@ void CustomIndyDedicatedTCPTestClient::ToggleTeleoperationMode() {
 	LeaveCriticalSection(&DCP_cs);
 }
 
-void CustomIndyDedicatedTCPTestClient::SetRefState(double *pos, double *vel) {
+double * CustomIndyDedicatedTCPTestClient::SetRefState(double *pos, double *vel) {
+	double* res;
 	EnterCriticalSection(&DCP_cs);
 	header.val.cmdId = CMD_SET_REF_POSE;
 	header.val.dataSize = sizeof(double) * 12;
@@ -489,6 +397,37 @@ void CustomIndyDedicatedTCPTestClient::SetRefState(double *pos, double *vel) {
 	for (int i = 0; i < 6; i++) {
 		data.doubleArr[i+6] = vel[i];
 	}
+
+	Run(header.val.cmdId, header.val.dataSize);
+
+	if (header.val.cmdId == resHeader.val.cmdId
+		&& header.val.invokeId == resHeader.val.invokeId
+		&& resHeader.val.sof == SOF_SERVER)
+	{
+		// Process success: return resHeader.val.dataSize
+		res = &resData.doubleArr[0];
+	}
+	double zeros[6] = { 0 };
+	res = zeros;
+	LeaveCriticalSection(&DCP_cs);
+	return res;
+}
+
+void CustomIndyDedicatedTCPTestClient::RaiseExtWrench() {
+	double* res;
+	EnterCriticalSection(&DCP_cs);
+	header.val.cmdId = CMD_RAISE_EXT_WRENCH;
+	header.val.dataSize = 0;
+
+	Run(header.val.cmdId, header.val.dataSize);
+	LeaveCriticalSection(&DCP_cs);
+}
+
+void CustomIndyDedicatedTCPTestClient::ReduceExtWrench() {
+	double* res;
+	EnterCriticalSection(&DCP_cs);
+	header.val.cmdId = CMD_REDUCE_EXT_WRENCH;
+	header.val.dataSize = 0;
 
 	Run(header.val.cmdId, header.val.dataSize);
 	LeaveCriticalSection(&DCP_cs);

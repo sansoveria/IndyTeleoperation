@@ -24,6 +24,8 @@ double pRef1[6] = { 0.605, 0.076, 0.221, 0.0, 90.000, 0.000, };
 double pdotRef1[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 double pRef2[6] = { 0.455, 0.076, 0.221, 0.0, 180.000, 0.000, };
 double pdotRef2[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+double* fext;
 #endif
 
 int main(int argc, char* argv[])
@@ -43,7 +45,6 @@ int main(int argc, char* argv[])
 		case 'h':
 			// go home
 			indyTCP.GoHome();
-			teleoperationComm.GoHome();
 			break;
 
 		case 'z':
@@ -53,13 +54,18 @@ int main(int argc, char* argv[])
 
 		case 'q':
 			// quit
+
 			printf("Quit IndyDCP Client\r\n");
 			break;
 
 		case 'a':
 #ifdef TELEOPERATION
-			indyTCP.SetRefState(pRef2, pdotRef2);
-#endif 
+			fext = teleoperationComm.SetRefState(pRef2, pdotRef2);
+			for (int i = 0; i < 6; i++) {
+				printf("%f ", fext[i]);
+			}
+			printf("\n");
+#endif
 			break;
 
 		case 'm':
@@ -70,15 +76,25 @@ int main(int argc, char* argv[])
 
 		case 'b':
 #ifdef TELEOPERATION
-			indyTCP.SetRefState(pRef1, pdotRef1);
+			fext = teleoperationComm.SetRefState(pRef1, pdotRef1);
+			for (int i = 0; i < 6; i++) {
+				printf("%f ", fext[i]);
+			}
+			printf("\n");
 #endif
 			break;
 
 		case 't':
-			// test
-
+#ifdef TELEOPERATION
+			teleoperationComm.RaiseExtWrench();
+#endif
 			break;
 
+		case 'g':
+#ifdef TELEOPERATION
+			teleoperationComm.ReduceExtWrench();
+#endif
+			break;
 		default:
 			printf("Wrong command\r\n");
 		}
