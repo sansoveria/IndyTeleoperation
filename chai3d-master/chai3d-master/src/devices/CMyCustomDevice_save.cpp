@@ -98,28 +98,42 @@ cMyCustomDevice::cMyCustomDevice(unsigned int a_deviceNumber)
     m_specifications.m_model                         = C_HAPTIC_DEVICE_CUSTOM;
 
     // name of the device manufacturer, research lab, university.
-    m_specifications.m_manufacturerName              = "MARCHLAB_POSTECH";
+    m_specifications.m_manufacturerName              = "My Name";
 
     // name of your device
-    m_specifications.m_modelName                     = "AGILE_EYE_2D";
+    m_specifications.m_modelName                     = "My Custom Device";
 
 
     //--------------------------------------------------------------------------
     // CHARACTERISTICS: (The following values must be positive or equal to zero)
     //--------------------------------------------------------------------------
 
-	// This device only rotates and does not have gripper
-    m_specifications.m_maxLinearForce				= 0.0;		// [N]
-	m_specifications.m_maxGripperForce				= 0.0;		// [N]
-	m_specifications.m_maxLinearStiffness			= 0.0;		// [N/m]
-	m_specifications.m_workspaceRadius				= 0.0;		// [m]
-	m_specifications.m_maxGripperLinearStiffness	= 0.0;		// [N*m]
-	m_specifications.m_gripperMaxAngleRad			= 0.0;
+    // the maximum force [N] the device can produce along the x,y,z axis.
+    m_specifications.m_maxLinearForce                = 5.0;     // [N]
+
+    // the maximum amount of torque your device can provide arround its
+    // rotation degrees of freedom.
+    m_specifications.m_maxAngularTorque              = 0.2;     // [N*m]
 
 
-    m_specifications.m_maxAngularTorque				= 0.2;		// [N*m]
-    m_specifications.m_maxAngularStiffness          = 1.0;		// [N*m/Rad]
-	
+    // the maximum amount of torque which can be provided by your gripper
+    m_specifications.m_maxGripperForce                = 3.0;     // [N]
+
+    // the maximum closed loop linear stiffness in [N/m] along the x,y,z axis
+    m_specifications.m_maxLinearStiffness             = 1000.0; // [N/m]
+
+    // the maximum amount of angular stiffness
+    m_specifications.m_maxAngularStiffness            = 1.0;    // [N*m/Rad]
+
+    // the maximum amount of stiffness supported by the gripper
+    m_specifications.m_maxGripperLinearStiffness      = 1000;   // [N*m]
+
+    // the radius of the physical workspace of the device (x,y,z axis)
+    m_specifications.m_workspaceRadius                = 0.2;     // [m]
+
+    // the maximum opening angle of the gripper
+    m_specifications.m_gripperMaxAngleRad             = cDegToRad(30.0);
+
 
     ////////////////////////////////////////////////////////////////////////////
     /*
@@ -132,35 +146,37 @@ cMyCustomDevice::cMyCustomDevice(unsigned int a_deviceNumber)
     */
     ////////////////////////////////////////////////////////////////////////////
     
-    // This device only rotates and does not have gripper
-    m_specifications.m_maxLinearDamping             = 0.0;		// [N/(m/s)]
-	m_specifications.m_maxGripperAngularDamping		= 0.0;		// [N*m/(Rad/s)]
+    // Maximum recommended linear damping factor Kv
+    m_specifications.m_maxLinearDamping             = 20.0;   // [N/(m/s)]
 
     //! Maximum recommended angular damping factor Kv (if actuated torques are available)
-    m_specifications.m_maxAngularDamping            = 0.0;		// [N*m/(Rad/s)]
-	
+    m_specifications.m_maxAngularDamping            = 0.0;    // [N*m/(Rad/s)]
+
+    //! Maximum recommended angular damping factor Kv for the force gripper. (if actuated gripper is available)
+    m_specifications.m_maxGripperAngularDamping     = 0.0;    // [N*m/(Rad/s)]
+
 
     //--------------------------------------------------------------------------
     // CHARACTERISTICS: (The following are of boolean type: (true or false)
     //--------------------------------------------------------------------------
 
     // does your device provide sensed position (x,y,z axis)?
-    m_specifications.m_sensedPosition                = false;
+    m_specifications.m_sensedPosition                = true;
 
     // does your device provide sensed rotations (i.e stylus)?
     m_specifications.m_sensedRotation                = true;
 
     // does your device provide a gripper which can be sensed?
-    m_specifications.m_sensedGripper                 = false;
+    m_specifications.m_sensedGripper                 = true;
 
     // is you device actuated on the translation degrees of freedom?
-    m_specifications.m_actuatedPosition              = false;
+    m_specifications.m_actuatedPosition              = true;
 
     // is your device actuated on the rotation degrees of freedom?
     m_specifications.m_actuatedRotation              = true;
 
     // is the gripper of your device actuated?
-    m_specifications.m_actuatedGripper               = false;
+    m_specifications.m_actuatedGripper               = true;
 
     // can the device be used with the left hand?
     m_specifications.m_leftHand                      = true;
@@ -194,19 +210,11 @@ cMyCustomDevice::cMyCustomDevice(unsigned int a_deviceNumber)
     */  
     ////////////////////////////////////////////////////////////////////////////
         
-	nPort = AdsPortOpen();
-	nErr = AdsGetLocalAddress(&Addr);
-	if (nErr) {
-		printf("[TC:ADS] AdsGetLocalAddress Error: %d\n", nErr);
-		m_deviceAvailable = C_ERROR;
-	}
-	else {
-		printf("[TC:ADS] ADS Port Opened \n", nErr);
-		m_deviceAvailable = C_SUCCESS;
-	}
 
-	// TwinCAT 3 Module Port = 350
-	(&Addr)->port = 350;
+    // *** INSERT YOUR CODE HERE ***
+    m_MyVariable = 0;
+
+    m_deviceAvailable = false; // this value should become 'true' when the device is available.
 }
 
 
@@ -257,31 +265,23 @@ bool cMyCustomDevice::open()
     */
     ////////////////////////////////////////////////////////////////////////////
 
-	// TODO: Motor Enable Commands
-	USHORT enableMotors = ENABLE_MOTOR;
-	bool motor1Ready, motor2Ready;
+    bool result = C_ERROR; // this value will need to become "C_SUCCESS" for the device to be marked as ready.
 
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR1_ENABLE, sizeof(enableMotors), &enableMotors);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR1 Enable Error: %d\n", nErr);
-		motor1Ready = C_ERROR;
-	}
-	else {
-		motor1Ready = C_SUCCESS;
-	}
+    // *** INSERT YOUR CODE HERE ***
+    // result = openConnectionToMyDevice();
 
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR2_ENABLE, sizeof(enableMotors), &enableMotors);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR2 Enable Error: %d\n", nErr);
-		motor2Ready = C_ERROR;
-	}
-	else {
-		motor2Ready = C_SUCCESS;
-	}
 
-	m_deviceReady = motor1Ready && motor2Ready;
-
-	return m_deviceReady;
+    // update device status
+    if (result)
+    {
+        m_deviceReady = true;
+        return (C_SUCCESS);
+    }
+    else
+    {
+        m_deviceReady = false;
+        return (C_ERROR);
+    }
 }
 
 
@@ -311,14 +311,8 @@ bool cMyCustomDevice::close()
 
     bool result = C_SUCCESS; // if the operation fails, set value to C_ERROR.
 
-	nErr = AdsPortClose();
-	if (nErr != 0) {
-		printf("[TC:ADS] ADS Port Close Error: %d\n", nErr);
-		result = C_ERROR;
-	}
-	else {
-		result = C_SUCCESS;
-	}
+    // *** INSERT YOUR CODE HERE ***
+    // result = closeConnectionToMyDevice()
 
     // update status
     m_deviceReady = false;
@@ -357,33 +351,13 @@ bool cMyCustomDevice::calibrate(bool a_forceCalibration)
     */
     ////////////////////////////////////////////////////////////////////////////
 
-	printf("[Calibration] Leave handle toward ground within 3 seconds");
-	for (int i = 0; i < 3; i++) {
-		Sleep(1000);
-		printf("[Calibration] %d seconds remain \n", 3-i);
-	}
-	printf("[Calibration] Calibration Done \n");
+    bool result = C_SUCCESS;
 
-	SHORT motor1_pos, motor2_pos;
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_pos), &motor1_pos);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor1 Read Error: %d\n", nErr);		
-		return (C_ERROR);
-	}
-	else {
-		m_motor1_zero_position = cnt2angle(motor1_pos);
-	}
+    // *** INSERT YOUR CODE HERE ***
 
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_pos), &motor2_pos);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor2 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		m_motor2_zero_position = cnt2angle(motor2_pos);
-	}
+    // error = calibrateMyDevice()
 
-    return (C_SUCCESS);
+    return (result);
 }
 
 
@@ -413,7 +387,11 @@ unsigned int cMyCustomDevice::getNumDevices()
     */
     ////////////////////////////////////////////////////////////////////////////
 
-    int numberOfDevices = 1;  // At least set to 1 if a device is available.
+    // *** INSERT YOUR CODE HERE, MODIFY CODE below ACCORDINGLY ***
+
+    int numberOfDevices = 0;  // At least set to 1 if a device is available.
+
+    // numberOfDevices = getNumberOfDevicesConnectedToTheComputer();
 
     return (numberOfDevices);
 }
@@ -454,7 +432,6 @@ bool cMyCustomDevice::getPosition(cVector3d& a_position)
     double x,y,z;
 
     // *** INSERT YOUR CODE HERE, MODIFY CODE below ACCORDINGLY ***
-	//////////////////// PASS FOR THIS DEVICE /////////////////////
 
     x = 0.0;    // x = getMyDevicePositionX()
     y = 0.0;    // y = getMyDevicePositionY()
@@ -513,44 +490,21 @@ bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
     cMatrix3d frame;
     frame.identity();
 
-	SHORT motor1_cnt, motor2_cnt;
-	double motor1_angle, motor2_angle;
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_cnt), &motor1_cnt);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor1 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		motor1_angle = cnt2angle(motor1_cnt);
-	}
+    // *** INSERT YOUR CODE HERE, MODIFY CODE below ACCORDINGLY ***
 
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_cnt), &motor2_cnt);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor2 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		motor2_angle = cnt2angle(motor2_cnt);
-	}
+    // if the device does not provide any rotation capabilities 
+    // set the rotation matrix equal to the identity matrix.
+    r00 = 1.0;  r01 = 0.0;  r02 = 0.0;
+    r10 = 0.0;  r11 = 1.0;  r12 = 0.0;
+    r20 = 0.0;  r21 = 0.0;  r22 = 1.0;
 
-    //// if the device does not provide any rotation capabilities 
-    //// set the rotation matrix equal to the identity matrix.
-    //r00 = 1.0;  r01 = 0.0;  r02 = 0.0;
-    //r10 = 0.0;  r11 = 1.0;  r12 = 0.0;
-    //r20 = 0.0;  r21 = 0.0;  r22 = 1.0;
-
-    //frame.set(r00, r01, r02, r10, r11, r12, r20, r21, r22);
-
-	calcForwardKinematics(motor1_angle, motor2_angle, frame);
+    frame.set(r00, r01, r02, r10, r11, r12, r20, r21, r22);
 
     // store new rotation matrix
     a_rotation = frame;
 
     // estimate angular velocity
     estimateAngularVelocity(a_rotation);
-
-	// calculate Jacobian
-	calcJacobian(motor1_angle, motor2_angle);
 
     // exit
     return (result);
@@ -584,8 +538,6 @@ bool cMyCustomDevice::getGripperAngleRad(double& a_angle)
     bool result = C_SUCCESS;
 
     // *** INSERT YOUR CODE HERE, MODIFY CODE below ACCORDINGLY ***
-	//////////////////// PASS FOR THIS DEVICE /////////////////////
-
 
     // return gripper angle in radian
     a_angle = 0.0;  // a_angle = getGripperAngleInRadianFromMyDevice();
@@ -659,8 +611,6 @@ bool cMyCustomDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     double gf = a_gripperForce;
 
     // *** INSERT YOUR CODE HERE ***
-	//////////////////// PASS FOR THIS DEVICE /////////////////////
-
 
     // setForceToMyDevice(fx, fy, fz);
     // setTorqueToMyDevice(tx, ty, tz);
@@ -699,8 +649,6 @@ bool cMyCustomDevice::getUserSwitches(unsigned int& a_userSwitches)
     ////////////////////////////////////////////////////////////////////////////
 
     // *** INSERT YOUR CODE HERE ***
-	//////////////////// PASS FOR THIS DEVICE /////////////////////
-
     a_userSwitches = 0;
 
     return (C_SUCCESS);

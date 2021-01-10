@@ -48,8 +48,6 @@
 #if defined(C_ENABLE_CUSTOM_DEVICE_SUPPORT)
 //------------------------------------------------------------------------------
 #include "devices/CGenericHapticDevice.h"
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsDef.h"
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsAPI.h"
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -187,40 +185,9 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
 protected:
-	// Variables for TwinCAT ADS communication
-	long						nErr;						// Error Message
-	long						nPort;						// Port number
-	AmsAddr						Addr;						// Target port information(PLC1)
 
-	double		m_motor1_zero_position, m_motor2_zero_position;
-	cMatrix3d	m_Jacobian;
-	
-#define	INDEX_GROUP		0x1010010
-#define	MOTOR1_ENABLE	0x81000000
-#define	MOTOR1_ANGLE	0x81000000
-#define	MOTOR1_TORQUE	0x81000000
-#define	MOTOR2_ENABLE	0x81000000
-#define	MOTOR2_ANGLE	0x81000000
-#define	MOTOR2_TORQUE	0x81000000
-
-#define	ENABLE_MOTOR	0x000F
-#define	DISABLE_MOTOR	0x0006
-
-protected:
-	double cnt2angle(USHORT count) {
-		// TODO: convert encoder tick into angle
-		double angle = count;
-		return (angle);
-	}
-
-	void calcForwardKinematics(double angle1, double angle2, cMatrix3d& rot) {
-		// TODO: implement Forward Kinematics calculation
-	}
-
-	void calcJacobian(double angle1, double angle2) {
-		// TODO: implement Jacobian calculation
-
-	}
+    //! A short description of my variable
+    int m_MyVariable;
 };
 
 //------------------------------------------------------------------------------
