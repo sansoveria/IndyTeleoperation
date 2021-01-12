@@ -364,14 +364,15 @@ bool cMyCustomDevice::calibrate(bool a_forceCalibration)
 	}
 	printf("[Calibration] Calibration Done \n");
 
-	SHORT motor1_pos, motor2_pos;
+	INT32 motor1_pos, motor2_pos;
 	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_pos), &motor1_pos);
 	if (nErr != 0) {
 		printf("[TC:ADS] Motor1 Read Error: %d\n", nErr);		
 		return (C_ERROR);
 	}
 	else {
-		m_motor1_zero_position = cnt2angle(motor1_pos);
+		// Calibration orientation: theta1 = -M_PI/2.0, theta2 = 0.0
+		m_motor1_zero_position = motor1_pos + 1024 * 5 * 4 / 4;
 	}
 
 	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_pos), &motor2_pos);
@@ -380,7 +381,7 @@ bool cMyCustomDevice::calibrate(bool a_forceCalibration)
 		return (C_ERROR);
 	}
 	else {
-		m_motor2_zero_position = cnt2angle(motor2_pos);
+		m_motor2_zero_position = motor2_pos;
 	}
 
     return (C_SUCCESS);
@@ -509,11 +510,10 @@ bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
     bool result = C_SUCCESS;
 
     // variables that describe the rotation matrix
-    double r00, r01, r02, r10, r11, r12, r20, r21, r22;
     cMatrix3d frame;
     frame.identity();
 
-	SHORT motor1_cnt, motor2_cnt;
+	INT32 motor1_cnt, motor2_cnt;
 	double motor1_angle, motor2_angle;
 	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_cnt), &motor1_cnt);
 	if (nErr != 0) {
@@ -521,7 +521,7 @@ bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
 		return (C_ERROR);
 	}
 	else {
-		motor1_angle = cnt2angle(motor1_cnt);
+		motor1_angle = 2.0*M_PI / 1024.0 / 5.0 / 4.0*(motor1_cnt - m_motor1_zero_position);
 	}
 
 	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_cnt), &motor2_cnt);
@@ -530,11 +530,13 @@ bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
 		return (C_ERROR);
 	}
 	else {
-		motor2_angle = cnt2angle(motor2_cnt);
+		motor2_angle = 2.0*M_PI / 1024.0 / 5.0 / 4.0*(motor2_cnt - m_motor2_zero_position);
 	}
 
     //// if the device does not provide any rotation capabilities 
     //// set the rotation matrix equal to the identity matrix.
+	//double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+
     //r00 = 1.0;  r01 = 0.0;  r02 = 0.0;
     //r10 = 0.0;  r11 = 1.0;  r12 = 0.0;
     //r20 = 0.0;  r21 = 0.0;  r22 = 1.0;
@@ -660,12 +662,30 @@ bool cMyCustomDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
 
     // *** INSERT YOUR CODE HERE ***
 	//////////////////// PASS FOR THIS DEVICE /////////////////////
-
-
     // setForceToMyDevice(fx, fy, fz);
-    // setTorqueToMyDevice(tx, ty, tz);
     // setForceToGripper(fg);
 
+	double motor_torque1, motor_torque2;
+	motor_torque1 = m_Jacobian(0, 0)*tx + m_Jacobian(1, 0)*ty + m_Jacobian(2, 0)*tz;
+	motor_torque2 = m_Jacobian(0, 0)*tx + m_Jacobian(1, 0)*ty + m_Jacobian(2, 0)*tz;
+
+	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR1_TORQUE, sizeof(motor_torque1), &motor_torque1);
+	if (nErr != 0) {
+		printf("[TC:ADS] MOTOR1 Write Torque Error: %d\n", nErr);
+		return(C_ERROR);
+	}
+	else {
+		result = C_SUCCESS;
+	}
+
+	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR2_TORQUE, sizeof(motor_torque2), &motor_torque2);
+	if (nErr != 0) {
+		printf("[TC:ADS] MOTOR2 Write Torque Error: %d\n", nErr);
+		return(C_ERROR);
+	}
+	else {
+		result = C_SUCCESS;
+	}
 
     // exit
     return (result);

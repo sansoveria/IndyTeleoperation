@@ -192,7 +192,7 @@ protected:
 	long						nPort;						// Port number
 	AmsAddr						Addr;						// Target port information(PLC1)
 
-	double		m_motor1_zero_position, m_motor2_zero_position;
+	INT32		m_motor1_zero_position, m_motor2_zero_position;
 	cMatrix3d	m_Jacobian;
 	
 #define	INDEX_GROUP		0x1010010
@@ -207,19 +207,42 @@ protected:
 #define	DISABLE_MOTOR	0x0006
 
 protected:
-	double cnt2angle(USHORT count) {
-		// TODO: convert encoder tick into angle
-		double angle = count;
-		return (angle);
-	}
 
 	void calcForwardKinematics(double angle1, double angle2, cMatrix3d& rot) {
 		// TODO: implement Forward Kinematics calculation
+		double ca, sa, c1, s1, c2, s2;
+		c1 = cos(angle1);
+		s1 = sin(angle1);
+		c2 = cos(angle2);
+		s2 = sin(angle2);
+		ca = c1 * c2 / sqrt(c1*c1*c2*c2 + s2 * s2);
+		sa = -s2 / sqrt(c1*c1*c2*c2 + s2 * s2);
+
+		double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+
+		r00 = ca*c1;		r01 = -sa*c1;		r02 = -s1;
+		r10 = sa;			r11 = ca;			r12 = 0.0;
+		r20 = ca * s1;		r21 = -sa * s1;		r22 = c1;
+
+		rot.set(r00, r01, r02, r10, r11, r12, r20, r21, r22);
 	}
 
 	void calcJacobian(double angle1, double angle2) {
 		// TODO: implement Jacobian calculation
+		double c1, s1, c2, s2, A;
+		c1 = cos(angle1);
+		s1 = sin(angle1);
+		c2 = cos(angle2);
+		s2 = sin(angle2);
+		A = c1 * c1*c2*c2 + s2 * s2;
 
+		double j00, j01, j02, j10, j11, j12, j20, j21, j22;
+
+		j00 = -s2/sqrt(A);		j01 = 0.0;		j02 = 0.0;
+		j10 = -c1*c2/sqrt(A);	j11 = 0.0;		j12 = 0.0;
+		j20 = s1*c2*s2/A;		j21 = c1/A;		j22 = 0.0;
+
+		m_Jacobian.set(j00, j01, j02, j10, j11, j12, j20, j21, j22);
 	}
 };
 
