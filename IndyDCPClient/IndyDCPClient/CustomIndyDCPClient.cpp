@@ -13,11 +13,8 @@ CustomIndyDedicatedTCPTestClient::CustomIndyDedicatedTCPTestClient() :v_sockFd(-
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	// Header setting
-	strcpy(header.val.robotName, ROBOT_NAME);
-	header.val.robotVersion[0] = '\0';
-	header.val.stepInfo = 0x02;
-	header.val.sof = SOF_CLIENT;
+	// userInput setting
+	userInput.val.sof = SOF_CLIENT;
 
 	InitializeCriticalSection(&DCP_cs);
 };
@@ -36,11 +33,7 @@ void CustomIndyDedicatedTCPTestClient::connect()
 
 void CustomIndyDedicatedTCPTestClient::connect(const char* serverip, const char* robotname) {
 
-	// Header setting
-	strcpy(header.val.robotName, robotname);
-	header.val.robotVersion[0] = '\0';
-	header.val.stepInfo = 0x02;
-	header.val.sof = SOF_CLIENT;
+	userInput.val.sof = SOF_CLIENT;
 
 	struct sockaddr_in server_addr;
 	v_sockFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -69,11 +62,11 @@ void CustomIndyDedicatedTCPTestClient::disconnect()
 	v_message = ("Socket Disconnected\n");
 }
 
-void CustomIndyDedicatedTCPTestClient::SendHeader()
+void CustomIndyDedicatedTCPTestClient::SendUserInput()
 {
 	// Send header
-	memcpy(writeBuff, header.byte, SIZE_HEADER_COMMAND);
-	if (send(v_sockFd, (const char*)writeBuff, SIZE_HEADER_COMMAND, 0) == -1)
+	memcpy(writeBuff, userInput.byte, SIZE_USER_INPUT);
+	if (send(v_sockFd, (const char*)writeBuff, SIZE_USER_INPUT, 0) == -1)
 	{
 		// send error
 		closesocket(v_sockFd);
@@ -82,53 +75,23 @@ void CustomIndyDedicatedTCPTestClient::SendHeader()
 
 }
 
-void CustomIndyDedicatedTCPTestClient::SendData()
-{
-	// Send data
-	if (header.val.dataSize > 0)
-	{
-		memcpy(writeBuff, &data, header.val.dataSize);
-		if (send(v_sockFd, (const char*)writeBuff, header.val.dataSize, 0) == -1)
-		{
-			// send error
-			closesocket(v_sockFd);
-			v_sockFd = -1;
-		}
-	}
-}
-
-void CustomIndyDedicatedTCPTestClient::SendExtData(int extDataSize)
-{
-	// Send data
-	if (extDataSize > 0)
-	{
-		memcpy(writeBuff, &extData, extDataSize);
-		if (send(v_sockFd, (const char*)writeBuff, extDataSize, 0) == -1)
-		{
-			// send error
-			closesocket(v_sockFd);
-			v_sockFd = -1;
-		}
-	}
-}
-
-void CustomIndyDedicatedTCPTestClient::ReadHeader()
+void CustomIndyDedicatedTCPTestClient::ReadIndyState()
 {
 	int len = 0;
 	int cur = 0;
 	// Read header
 	while (true)
 	{
-		len = recv(v_sockFd, (char*)readBuff + cur, SIZE_HEADER_COMMAND - cur, MSG_WAITALL);
+		len = recv(v_sockFd, (char*)readBuff + cur, SIZE_INDY_STATE - cur, MSG_WAITALL);
 		if (len == 0)
 		{
 			//Poco::Thread::sleep(100);
-			Sleep(100);
+			//Sleep(100);
 		}
 		else if (len > 0)
 		{
 			cur += len;
-			if (cur == SIZE_HEADER_COMMAND) break;
+			if (cur == SIZE_INDY_STATE) break;
 		}
 		else
 		{
@@ -139,297 +102,60 @@ void CustomIndyDedicatedTCPTestClient::ReadHeader()
 		}
 	}
 	if (v_sockFd == -1) return;
-	memcpy(resHeader.byte, readBuff, SIZE_HEADER_COMMAND);
+	memcpy(indyState.byte, readBuff, SIZE_INDY_STATE);
 	//message = ("CustomIndyDedicatedTCPTestClient : Read response header \n");
 }
-void CustomIndyDedicatedTCPTestClient::ReadData()
+
+bool CustomIndyDedicatedTCPTestClient::Run()
 {
-	int len = 0;
-	int cur = 0;
-	if (resHeader.val.dataSize > 0)
-	{
-		// Read data
-		while (true)
-		{
-			len = recv(v_sockFd, (char*)readBuff + cur, resHeader.val.dataSize - cur, MSG_WAITALL);
-			if (len == 0)
-			{
-				Sleep(100);
-				// Poco::Thread::sleep(100);
-			}
-			else if (len > 0)
-			{
-				cur += len;
-				if (cur == resHeader.val.dataSize) break;
-			}
-			else
-			{
-				// Recieving error (error code: errno)
-				closesocket(v_sockFd);
-				v_sockFd = -1;
-				break;
-			}
-		}
+	userInput.val.invokeId = v_invokeId++;
 
-		if (v_sockFd == -1) return;
-		memcpy(resData.byte, readBuff, resHeader.val.dataSize);
-		//printf("CustomIndyDedicatedTCPTestClient : Read response data\n");
-	}
-}
-
-void CustomIndyDedicatedTCPTestClient::Run(int cmdID, int dataSize, int extDataSize)
-{
-	// Perform socket communication
-	header.val.invokeId = v_invokeId++;
-
-	header.val.cmdId = cmdID;
-	header.val.dataSize = dataSize;
-
-
+	// Communication
 	if (v_sockFd >= 0)
 	{
-		SendHeader();
-		SendData();
-		if (header.val.cmdId == CMD_FOR_EXTENDED && extDataSize > 0)
-			SendExtData(extDataSize);
-
-		ReadHeader();
-		ReadData();
+		SendUserInput();
+		ReadIndyState();
 	}
+
+	// Integrity check
+	return (userInput.val.invokeId == indyState.val.invokeId && indyState.val.sof == SOF_SERVER);
 }
 
-void CustomIndyDedicatedTCPTestClient::Run(int cmdID, int dataSize)
-{
-	// Perform socket communication
-	header.val.invokeId = v_invokeId++;
+void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, int& cmode) {
+	// masterPos, indyPos: position in m, Euler angle in rad
+	// passivityPort: reserved for later
+	// cmode: current Indy cmode (ex - 0: stationary, 1: joint move, ..., 20: teleoperation mode) 
 
-	header.val.cmdId = cmdID;
-	header.val.dataSize = dataSize;
-
-
-	if (v_sockFd >= 0)
-	{
-		SendHeader();
-		SendData();
-
-		ReadHeader();
-		ReadData();
-	}
-}
-
-void CustomIndyDedicatedTCPTestClient::Run(int cmdID)
-{
-	// Perform socket communication
-	header.val.invokeId = v_invokeId++;
-
-	header.val.cmdId = cmdID;
-	header.val.dataSize = 0;
-
-
-	if (v_sockFd >= 0)
-	{
-		SendHeader();
-		SendData();
-
-		ReadHeader();
-		ReadData();
-	}
-}
-
-double *CustomIndyDedicatedTCPTestClient::GetJointPos() {
 	EnterCriticalSection(&DCP_cs);
-
-	// Get joint position
-	Run(CMD_GET_JOINT_POSITION, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
-	}
-	double zeros[6] = { 0 };
-	LeaveCriticalSection(&DCP_cs);
-	return zeros;
-}
-
-double *CustomIndyDedicatedTCPTestClient::GetJointVel() {
-	EnterCriticalSection(&DCP_cs);
-
-	// Get Joint Velocity (Angular)
-	Run(CMD_GET_JOINT_VELOCITY, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
-	}
-	double zeros[6] = { 0 };
-	LeaveCriticalSection(&DCP_cs);
-	return zeros;
-}
-
-double *CustomIndyDedicatedTCPTestClient::GetTaskPos() {
-	EnterCriticalSection(&DCP_cs);
-
-	// Get Task position
-	Run(CMD_GET_TASK_POSITION, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
-	}
-	double zeros[6] = { 0 };
-	LeaveCriticalSection(&DCP_cs);
-	return zeros;
-}
-
-double *CustomIndyDedicatedTCPTestClient::GetTaskVel() {
-	EnterCriticalSection(&DCP_cs);
-
-	// Get Task Velocity
-	Run(CMD_GET_TASK_VELOCITY, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
-	}
-	double zeros[6] = { 0 };
-	LeaveCriticalSection(&DCP_cs);
-	return zeros;
-}
-
-double *CustomIndyDedicatedTCPTestClient::GetTorque() {
-	EnterCriticalSection(&DCP_cs);
-	// Get Task Velocity
-	Run(CMD_GET_TORQUE, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
-	}
-	double zeros[6] = { 0 };
-	LeaveCriticalSection(&DCP_cs);
-	return zeros;
-}
-
-bool CustomIndyDedicatedTCPTestClient::isReady() {
-	EnterCriticalSection(&DCP_cs);
-	bool res = false;
-	Run(CMD_IS_READY, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val
-		res = resData.boolVal;
-	}
-	LeaveCriticalSection(&DCP_cs);
-	return res;
-}
-
-bool CustomIndyDedicatedTCPTestClient::isMoveFinished() {
-	EnterCriticalSection(&DCP_cs);
-	bool res = false;
-
-	Run(CMD_IS_MOVE_FINISEHD, 0);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val
-		res = resData.boolVal;
-	}
-
-	LeaveCriticalSection(&DCP_cs);
-	return res;
-}
-
-void CustomIndyDedicatedTCPTestClient::TrackTrajectory(std::string filename) {
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_FOR_EXTENDED;
-	header.val.dataSize = sizeof(int) * 2;
+	// prepare command
+	userInput.val.passivityPort = (int)(passivityPort * 1000.0);
+	userInput.val.targetPos[0] = (int)(masterPos[0] * 100000.0);
+	userInput.val.targetPos[1] = (int)(masterPos[1] * 100000.0);
+	userInput.val.targetPos[2] = (int)(masterPos[2] * 100000.0);
+	userInput.val.targetPos[3] = (int)(masterPos[0] * 1000.0);
+	userInput.val.targetPos[4] = (int)(masterPos[1] * 1000.0);
+	userInput.val.targetPos[5] = (int)(masterPos[2] * 1000.0);
 	
-	int charLength = filename.length();
-
-	data.intArr[0] = 4;
-	data.intArr[1] = charLength+1;
-
-	for (int i = 0; i < charLength; i++) {
-		extData.charArr[i] = filename.c_str()[i];
+	// Run TCP communication
+	if (Run()) {
+		indyPos[0] = (double)indyState.val.indyPos[0] / 100000.0;
+		indyPos[1] = (double)indyState.val.indyPos[1] / 100000.0;
+		indyPos[2] = (double)indyState.val.indyPos[2] / 100000.0;
+		indyPos[3] = (double)indyState.val.indyPos[3] / 1000.0;
+		indyPos[4] = (double)indyState.val.indyPos[4] / 1000.0;
+		indyPos[5] = (double)indyState.val.indyPos[5] / 1000.0;
+		cmode = indyState.val.cmode;
 	}
-	extData.charArr[charLength] = '\0';
-
-	Run(header.val.cmdId, header.val.dataSize, charLength+1);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-#ifdef TELEOPERATION
-void CustomIndyDedicatedTCPTestClient::ToggleTeleoperationMode() {
-	EnterCriticalSection(&DCP_cs);
-	Run(CMD_TOGGLE_TELEOPERATION_MODE, 0);
-	LeaveCriticalSection(&DCP_cs);
-}
-
-double * CustomIndyDedicatedTCPTestClient::SetRefState(double *pos, double *vel) {
-	double* res;
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_SET_REF_POSE;
-	header.val.dataSize = sizeof(double) * 12;
-
-	for (int i = 0; i < 6; i++) {
-		data.doubleArr[i] = pos[i];
+	else {
+		indyPos[0] = 0.0;
+		indyPos[1] = 0.0;
+		indyPos[2] = 0.0;
+		indyPos[3] = 0.0;
+		indyPos[4] = 0.0;
+		indyPos[5] = 0.0;
+		cmode = -1;
 	}
-	for (int i = 0; i < 6; i++) {
-		data.doubleArr[i+6] = vel[i];
-	}
-
-	Run(header.val.cmdId, header.val.dataSize);
-
-	if (header.val.cmdId == resHeader.val.cmdId
-		&& header.val.invokeId == resHeader.val.invokeId
-		&& resHeader.val.sof == SOF_SERVER)
-	{
-		// Process success: return resHeader.val.dataSize
-		res = &resData.doubleArr[0];
-	}
-	double zeros[6] = { 0 };
-	res = zeros;
-	LeaveCriticalSection(&DCP_cs);
-	return res;
-}
-
-void CustomIndyDedicatedTCPTestClient::RaiseExtWrench() {
-	double* res;
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_RAISE_EXT_WRENCH;
-	header.val.dataSize = 0;
-
-	Run(header.val.cmdId, header.val.dataSize);
+	
 	LeaveCriticalSection(&DCP_cs);
 }
 
-void CustomIndyDedicatedTCPTestClient::ReduceExtWrench() {
-	double* res;
-	EnterCriticalSection(&DCP_cs);
-	header.val.cmdId = CMD_REDUCE_EXT_WRENCH;
-	header.val.dataSize = 0;
-
-	Run(header.val.cmdId, header.val.dataSize);
-	LeaveCriticalSection(&DCP_cs);
-}
-#endif

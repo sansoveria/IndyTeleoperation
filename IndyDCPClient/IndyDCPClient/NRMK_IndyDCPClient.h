@@ -299,6 +299,9 @@ public:
 	Data extData;
 	Data resData;
 
+	LARGE_INTEGER clockStart, clockEnd, clockFreq;
+	double clockTime_ms;
+
 	unsigned char readBuff[1024];
 	unsigned char writeBuff[1024];
 	// Send and Response functions

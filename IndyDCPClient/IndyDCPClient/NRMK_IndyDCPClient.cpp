@@ -20,6 +20,7 @@ IndyDedicatedTCPTestClient::IndyDedicatedTCPTestClient() :v_sockFd(-1), v_invoke
 	header.val.sof = SOF_CLIENT;
 
 	InitializeCriticalSection(&DCP_cs);
+	QueryPerformanceFrequency(&clockFreq);
 };
 
 IndyDedicatedTCPTestClient::~IndyDedicatedTCPTestClient()
@@ -200,21 +201,39 @@ void IndyDedicatedTCPTestClient::Run(int cmdID, int dataSize, int extDataSize)
 
 void IndyDedicatedTCPTestClient::Run(int cmdID, int dataSize)
 {
+	QueryPerformanceCounter(&clockStart);
 	// Perform socket communication
 	header.val.invokeId = v_invokeId++;
 
 	header.val.cmdId = cmdID;
 	header.val.dataSize = dataSize;
 
+	QueryPerformanceCounter(&clockEnd);
+	clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+	printf("prepare data: %f\n", clockTime_ms);
 
 	if (v_sockFd >= 0)
 	{
 		SendHeader();
+		QueryPerformanceCounter(&clockEnd);
+		clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+		printf("send header: %f\n", clockTime_ms);
 		SendData();
-
+		QueryPerformanceCounter(&clockEnd);
+		clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+		printf("send data: %f\n", clockTime_ms);
 		ReadHeader();
+		QueryPerformanceCounter(&clockEnd);
+		clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+		printf("read header: %f\n", clockTime_ms);
 		ReadData();
+		QueryPerformanceCounter(&clockEnd);
+		clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+		printf("read data: %f\n", clockTime_ms);
 	}
+	QueryPerformanceCounter(&clockEnd);
+	clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+	printf("clock3: %f\n", clockTime_ms);
 }
 
 void IndyDedicatedTCPTestClient::Run(int cmdID)
@@ -360,10 +379,17 @@ bool IndyDedicatedTCPTestClient::isMoveFinished() {
 }
 
 void IndyDedicatedTCPTestClient::GoHome(){
+	QueryPerformanceCounter(&clockStart);
 	EnterCriticalSection(&DCP_cs);
 	// Go Home command		
-	Run(CMD_MOVE_HOME, 0);
+
+	
+	Run(CMD_MOVE_HOME, 0);	
+	
 	LeaveCriticalSection(&DCP_cs);
+	QueryPerformanceCounter(&clockEnd);
+	clockTime_ms = ((double)clockEnd.QuadPart - (double)clockStart.QuadPart) / ((double)clockFreq.QuadPart) * 1000;
+	printf("clock2: %f\n", clockTime_ms);
 }
 
 void IndyDedicatedTCPTestClient::GoZero(){

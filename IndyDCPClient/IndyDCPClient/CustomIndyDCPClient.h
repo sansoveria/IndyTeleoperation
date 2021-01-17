@@ -46,137 +46,46 @@ using namespace std;
 class CustomIndyDedicatedTCPTestClient //: public Poco::Runnable
 {
 public:
-	enum Command : int
-	{
-		CMD_CHECK = 0,
-
-		CMD_IS_ROBOT_RUNNING = 30,	//refined ...
-		CMD_IS_READY = 31,
-		CMD_IS_EMG = 32,
-		CMD_IS_COLLIDED = 33,
-		CMD_IS_ERR = 34,
-		CMD_IS_BUSY = 35,
-		CMD_IS_MOVE_FINISEHD = 36,
-		CMD_IS_HOME = 37,
-		CMD_IS_ZERO = 38,
-		CMD_IS_IN_RESETTING = 39,
-		CMD_IS_DIRECT_TECAHING = 60,
-		CMD_IS_TEACHING = 61,
-		CMD_IS_PROGRAM_RUNNING = 62,
-		CMD_IS_PROGRAM_PAUSED = 63,
-		CMD_IS_CONTY_CONNECTED = 64,
-
-		CMD_GET_RUNNING_TIME = 300,
-		CMD_GET_CMODE = 301,
-		CMD_GET_JOINT_STATE = 302,
-		CMD_GET_JOINT_POSITION = 320,
-		CMD_GET_JOINT_VELOCITY = 321,
-		CMD_GET_TASK_POSITION = 322,
-		CMD_GET_TASK_VELOCITY = 323,
-		CMD_GET_TORQUE = 324,
-		CMD_GET_INV_KIN = 325,
-
-		CMD_GET_LAST_EMG_INFO = 380,	//new
-
-		CMD_GET_SMART_DI = 400,
-		CMD_GET_SMART_DIS = 401,
-		CMD_SET_SMART_DO = 402,
-		CMD_SET_SMART_DOS = 403,
-		CMD_GET_SMART_AI = 404,
-		CMD_SET_SMART_AO = 405,
-		CMD_GET_SMART_DO = 406,
-		CMD_GET_SMART_DOS = 407,
-		CMD_GET_SMART_AO = 408,
-		CMD_SET_ENDTOOL_DO = 409,
-		CMD_GET_ENDTOOL_DO = 410,
-
-		CMD_GET_EXTIO_FTCAN_ROBOT_RAW = 420,
-		CMD_GET_EXTIO_FTCAN_ROBOT_TRANS = 421,
-		CMD_GET_EXTIO_FTCAN_CB_RAW = 422,
-		CMD_GET_EXTIO_FTCAN_CB_TRANS = 423,
-
-		CMD_READ_DIRECT_VARIABLE = 460,
-		CMD_READ_DIRECT_VARIABLES = 461,
-		CMD_WRITE_DIRECT_VARIABLE = 462,
-		CMD_WRITE_DIRECT_VARIABLES = 463,
-
-		//[DONGHYEON] Teleoperation
-		CMD_TOGGLE_TELEOPERATION_MODE = 570,
-		CMD_SET_REF_POSE = 571,
-		CMD_RAISE_EXT_WRENCH = 578,
-		CMD_REDUCE_EXT_WRENCH = 579,
-		//[DONGHYEON] Teleoperation
-
-		CMD_SET_SYNC_MODE = 700,
-
-		CMD_FOR_EXTENDED = 800,
-		CMD_FOR_STREAMING = 801,
-
-		CMD_SEND_KEYCOMMAND = 9996,
-		CMD_READ_MEMORY = 9997,
-		CMD_WRITE_MEMORY = 9998,
-		CMD_ERROR = 9999
-	};
-
+	//enum {
+	//	SIZE_HEADER = 52,
+	//	SIZE_COMMAND = 4,
+	//	SIZE_HEADER_COMMAND = 56,
+	//	SIZE_DATA_MAX = 200,
+	//	SIZE_DATA_ASCII_MAX = 32
+	//};
 
 	enum {
-		SIZE_HEADER = 52,
-		SIZE_COMMAND = 4,
-		SIZE_HEADER_COMMAND = 56,
-		SIZE_DATA_MAX = 200,
-		SIZE_DATA_ASCII_MAX = 32
+		SIZE_USER_INPUT = 33,
+		SIZE_INDY_STATE = 33,
 	};
 
 #pragma pack(push)  /* push current alignment to stack */
 #pragma pack(1)     /* set alignment to 1 byte boundary */
-	struct HeaderCommandStruct
-	{
-		char robotName[20];
-		char robotVersion[12];
-		unsigned char stepInfo;
-		unsigned char sof;		//source of Frame
-		int invokeId;
-		int dataSize;
-		char reserved[10];
-		int cmdId;
+	struct CustomUserInputStruct{					// 33 byte
+		int invokeId;								// message ID (4 byte)
+		int targetPos[6];							// master device position in 10um and Euler angle in 0.001rad (24 byte)
+		int passivityPort;							// reserved for passivity port (4 byte)
+		unsigned char sof;							// source of Frame (1 byte)
+	};
+
+	struct CustomIndyStateStruct{					// 33 byte
+		int invokeId;								// message ID which is same with userinput (4 byte)
+		int indyPos[6];								// master device position in 10um and Euler angle in 0.001rad (24 byte)
+		int cmode;									// Indy cmode (4 byte)
+		unsigned char sof;							// source of Frame (1 byte)
 	};
 #pragma pack(pop)   /* restore original alignment from stack */
 
-	union HeaderCommand
+	union CustomUserInput
 	{
-		unsigned char byte[SIZE_HEADER_COMMAND];
-		HeaderCommandStruct val;
+		unsigned char byte[SIZE_USER_INPUT];
+		CustomUserInputStruct val;
 	};
 
-	union Data
+	union CustomIndyState
 	{
-		unsigned char byte[SIZE_DATA_MAX];
-		char asciiStr[SIZE_DATA_ASCII_MAX + 1];
-		char str[200];
-		char charVal;
-		bool boolVal;
-		short shortVal;
-		int intVal;
-		float floatVal;
-		double doubleVal;
-		char char2dArr[2];
-		char char3dArr[3];
-		char char6dArr[6];
-		char char7dArr[200];
-		char charArr[200];
-		int int2dArr[2];
-		int int3dArr[3];
-		int int6dArr[6];
-		int int7dArr[6];
-		int intArr[50];
-		float float3dArr[3];
-		float float6dArr[6];
-		float float7dArr[7];
-		float floatArr[50];
-		double double3dArr[3];
-		double double6dArr[6];
-		double double7dArr[6];
-		double doubleArr[25];
+		unsigned char byte[SIZE_INDY_STATE];
+		CustomIndyStateStruct val;
 	};
 
 	// Constructor and destructor
@@ -190,7 +99,6 @@ public:
 	void connect();
 	void connect(const char* serverip, const char* robotname);
 	void disconnect();
-	void run();
 
 	string getv_message() { return this->v_message; }
 	char *getv_data() { return this->v_data; }
@@ -211,44 +119,17 @@ private:
 	// Various functions
 public:
 	// Header and Data
-	HeaderCommand header;
-	HeaderCommand resHeader;
-	Data data;
-	Data extData;
-	Data resData;
+	CustomUserInput userInput;
+	CustomIndyState indyState;
 
 	unsigned char readBuff[1024];
 	unsigned char writeBuff[1024];
 	// Send and Response functions
-	void SendHeader();
-	void SendData();
-	void SendExtData(int extDataSize);
-	void ReadHeader();
-	void ReadData();
+	void SendUserInput();
+	void ReadIndyState();
 
 	////// Cmd Transmittion
-	void Run(int cmdID, int dataSize, int extDataSize);
-	void Run(int cmdID, int dataSize);
-	void Run(int cmdID);
-	////// Functions
-	//// Basic
-	bool isReady();
-	bool isMoveFinished();
-	//// Info
-	double *GetJointPos();
-	double *GetTaskPos();
-	double *GetJointVel();
-	double *GetTaskVel();
-	double *GetTorque();
-	
-	//// For Extended
-	void TrackTrajectory(std::string filename);
-
-#ifdef TELEOPERATION
-	void ToggleTeleoperationMode();
-	double * SetRefState(double *pos, double *vel);
-	void RaiseExtWrench();
-	void ReduceExtWrench();
-#endif
+	bool Run();
+	void SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, int& cmode);
 
 }; /* end of class */
