@@ -121,8 +121,8 @@ bool CustomIndyDedicatedTCPTestClient::Run()
 	return (userInput.val.invokeId == indyState.val.invokeId && indyState.val.sof == SOF_SERVER);
 }
 
-void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, int& cmode) {
-	// masterPos, indyPos: position in m, Euler angle in rad
+void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, double * forceTorque, int& cmode) {
+	// masterPos, indyPos: position in m, axisangle in rad
 	// passivityPort: reserved for later
 	// cmode: current Indy cmode (ex - 0: stationary, 1: joint move, ..., 20: teleoperation mode) 
 
@@ -144,6 +144,12 @@ void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * mast
 		indyPos[3] = (double)indyState.val.indyPos[3] / 1000.0;
 		indyPos[4] = (double)indyState.val.indyPos[4] / 1000.0;
 		indyPos[5] = (double)indyState.val.indyPos[5] / 1000.0;
+		forceTorque[0] = (double)indyState.val.force[0] / 1000.0;
+		forceTorque[1] = (double)indyState.val.force[1] / 1000.0;
+		forceTorque[2] = (double)indyState.val.force[2] / 1000.0;
+		forceTorque[3] = (double)indyState.val.torque[0] / 1000.0;
+		forceTorque[4] = (double)indyState.val.torque[1] / 1000.0;
+		forceTorque[5] = (double)indyState.val.torque[2] / 1000.0;
 		cmode = indyState.val.cmode;
 	}
 	else {
@@ -153,6 +159,12 @@ void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * mast
 		indyPos[3] = 0.0;
 		indyPos[4] = 0.0;
 		indyPos[5] = 0.0;
+		forceTorque[0] = 0.0;
+		forceTorque[1] = 0.0;
+		forceTorque[2] = 0.0;
+		forceTorque[3] = 0.0;
+		forceTorque[4] = 0.0;
+		forceTorque[5] = 0.0;
 		cmode = -1;
 	}
 	

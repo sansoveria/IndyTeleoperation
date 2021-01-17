@@ -27,7 +27,7 @@ double pdotRef2[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 double* fext;
 
-double masterPos[6], indyPos[6];
+double masterPos[6], indyPos[6], forceTorque[6];
 double passivityPort;
 int cmode;
 #endif
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
 			QueryPerformanceCounter(&clockStart);
 			//for (int i = 0; i < 1000; i++) {
-				teleoperationComm.SendIndyCommandAndReadState(&masterPos[0], passivityPort, &indyPos[0], cmode);
+				teleoperationComm.SendIndyCommandAndReadState(&masterPos[0], passivityPort, &indyPos[0], &forceTorque[0], cmode);
 			//}
 			
 			QueryPerformanceCounter(&clockEnd);

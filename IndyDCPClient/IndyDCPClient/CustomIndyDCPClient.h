@@ -56,7 +56,7 @@ public:
 
 	enum {
 		SIZE_USER_INPUT = 33,
-		SIZE_INDY_STATE = 33,
+		SIZE_INDY_STATE = 57,
 	};
 
 #pragma pack(push)  /* push current alignment to stack */
@@ -68,9 +68,11 @@ public:
 		unsigned char sof;							// source of Frame (1 byte)
 	};
 
-	struct CustomIndyStateStruct{					// 33 byte
+	struct CustomIndyStateStruct{					// 57 byte
 		int invokeId;								// message ID which is same with userinput (4 byte)
-		int indyPos[6];								// master device position in 10um and Euler angle in 0.001rad (24 byte)
+		int indyPos[6];								// Indy position in 10um and Euler angle in 0.001rad (24 byte)
+		int force[3];								// force value in mN (12 byte)
+		int torque[3];								// torque value in mNm (12 byte)
 		int cmode;									// Indy cmode (4 byte)
 		unsigned char sof;							// source of Frame (1 byte)
 	};
@@ -130,6 +132,6 @@ public:
 
 	////// Cmd Transmittion
 	bool Run();
-	void SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, int& cmode);
+	void SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, double * forceTorque, int& cmode);
 
 }; /* end of class */
