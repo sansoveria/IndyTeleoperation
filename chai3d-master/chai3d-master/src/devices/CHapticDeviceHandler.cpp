@@ -224,6 +224,7 @@ void cHapticDeviceHandler::update()
 
     // check for how many devices are available for this class of devices
     count = cMyCustomDevice::getNumDevices();
+    printf("[HapticDeviceHandler] Number of CustomDevices:  %d\n", count);
 
     // open all remaining devices
     for (int i=0; i<count; i++)

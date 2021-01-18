@@ -117,7 +117,7 @@ cMyCustomDevice::cMyCustomDevice(unsigned int a_deviceNumber)
 	m_specifications.m_gripperMaxAngleRad			= 0.0;
 
 
-    m_specifications.m_maxAngularTorque				= 0.2;		// [N*m]
+    m_specifications.m_maxAngularTorque				= 0.01;		// [N*m]
     m_specifications.m_maxAngularStiffness          = 1.0;		// [N*m/Rad]
 	
 
@@ -197,16 +197,29 @@ cMyCustomDevice::cMyCustomDevice(unsigned int a_deviceNumber)
 	nPort = AdsPortOpen();
 	nErr = AdsGetLocalAddress(&Addr);
 	if (nErr) {
-		printf("[TC:ADS] AdsGetLocalAddress Error: %d\n", nErr);
+		printf("[AGILE_EYE] AdsGetLocalAddress Error: %d\n", nErr);
 		m_deviceAvailable = C_ERROR;
 	}
 	else {
-		printf("[TC:ADS] ADS Port Opened \n", nErr);
+		printf("[AGILE_EYE] ADS Port Opened \n");
 		m_deviceAvailable = C_SUCCESS;
 	}
 
 	// TwinCAT 3 Module Port = 350
 	(&Addr)->port = 350;
+
+    // Initialize motor status
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    aOutput.calibrationFlag = false;
+    aOutput.tau1 = 0;
+    aOutput.tau2 = 0;
+    aOutput.tau3 = 0;
+
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 }
 
 
@@ -234,6 +247,10 @@ cMyCustomDevice::~cMyCustomDevice()
 //==============================================================================
 bool cMyCustomDevice::open()
 {
+    printf("aInput size: %d, aOutput size: %d\n", sizeof(aInput), sizeof(aOutput));
+    //printf("aInput addr: %p, u1 addr: %p, v1 addr: %p, w1 addr: %p, u2 addr: %p, v2 addr: %p, w2 addr: %p, angle1 addr: %p, angle2 addr: %p\n", &aInput, &aInput.u1, &aInput.v1, &aInput.w1, &aInput.u2, &aInput.v2, &aInput.w2, &aInput.angle1, &aInput.angle2);
+    //printf("aOutput addr: %p, tau1 addr: %p, tau2 addr: %p, tau3 addr: %p, enableMotor1 addr: %p, enableMotor2 addr: %p\n", &aOutput, &aOutput.tau1, &aOutput.tau2, &aOutput.tau3, &aOutput.enableMotor1, &aOutput.enableMotor2);
+    
     // check if the system is available
     if (!m_deviceAvailable) return (C_ERROR);
 
@@ -257,29 +274,27 @@ bool cMyCustomDevice::open()
     */
     ////////////////////////////////////////////////////////////////////////////
 
-	// TODO: Motor Enable Commands
-	USHORT enableMotors = ENABLE_MOTOR;
-	bool motor1Ready, motor2Ready;
+    aOutput.enableMotor1 = true;
+    aOutput.enableMotor2 = true;
 
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR1_ENABLE, sizeof(enableMotors), &enableMotors);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR1 Enable Error: %d\n", nErr);
-		motor1Ready = C_ERROR;
-	}
-	else {
-		motor1Ready = C_SUCCESS;
-	}
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR2_ENABLE, sizeof(enableMotors), &enableMotors);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR2 Enable Error: %d\n", nErr);
-		motor2Ready = C_ERROR;
-	}
-	else {
-		motor2Ready = C_SUCCESS;
-	}
+    m_deviceReady = false;
+    for (int i = 0; i < 30; i++) {
+        nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+        if (nErr != 0) {
+            printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+        }
 
-	m_deviceReady = motor1Ready && motor2Ready;
+        m_deviceReady = aInput.motorState1 && aInput.motorState2;
+        printf("angle1: %d, angle2: %d \n", aInput.angle1, aInput.angle2);
+        if (!aInput.motorState1) printf("[AGILE_EYE] Trial %d, Failed to enable motor1\n", i);
+        if (!aInput.motorState2) printf("[AGILE_EYE] Trial %d, Failed to enable motor2\n", i);
+        if (m_deviceReady) break;
+    }
 
 	return m_deviceReady;
 }
@@ -295,7 +310,10 @@ bool cMyCustomDevice::open()
 bool cMyCustomDevice::close()
 {
     // check if the system has been opened previously
-    if (!m_deviceReady) return (C_ERROR);
+    //if (!m_deviceReady) {
+
+    //    return (C_ERROR);
+    //}
 
     ////////////////////////////////////////////////////////////////////////////
     /*
@@ -311,12 +329,24 @@ bool cMyCustomDevice::close()
 
     bool result = C_SUCCESS; // if the operation fails, set value to C_ERROR.
 
+    aOutput.tau1 = LONG(0);
+    aOutput.tau2 = LONG(0);
+    aOutput.tau3 = LONG(0);
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
+
 	nErr = AdsPortClose();
 	if (nErr != 0) {
-		printf("[TC:ADS] ADS Port Close Error: %d\n", nErr);
+		printf("[AGILE_EYE] Error: ADS Port Close Error: %d\n", nErr);
 		result = C_ERROR;
 	}
 	else {
+        printf("[AGILE_EYE] ADS Port Closed \n", nErr);
 		result = C_SUCCESS;
 	}
 
@@ -357,34 +387,31 @@ bool cMyCustomDevice::calibrate(bool a_forceCalibration)
     */
     ////////////////////////////////////////////////////////////////////////////
 
-	printf("[Calibration] Leave handle toward ground within 3 seconds");
-	for (int i = 0; i < 3; i++) {
-		Sleep(1000);
-		printf("[Calibration] %d seconds remain \n", 3-i);
-	}
-	printf("[Calibration] Calibration Done \n");
+	// disable and enable motors (reset motors)
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[TC:ADS] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 
-	INT32 motor1_pos, motor2_pos;
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_pos), &motor1_pos);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor1 Read Error: %d\n", nErr);		
-		return (C_ERROR);
-	}
-	else {
-		// Calibration orientation: theta1 = -M_PI/2.0, theta2 = 0.0
-		m_motor1_zero_position = motor1_pos + 1024 * 5 * 4 / 4;
-	}
+    aOutput.enableMotor1 = true;
+    aOutput.enableMotor2 = true;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_pos), &motor2_pos);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor2 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		m_motor2_zero_position = motor2_pos;
-	}
+    // set zero angle
+    if (aOutput.calibrationFlag) aOutput.calibrationFlag = false;
+    else aOutput.calibrationFlag = true;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 
-    return (C_SUCCESS);
+    if (abs(aInput.angle1) < 50 && abs(aInput.angle2) < 50) return (C_SUCCESS);
+    else return (C_ERROR);
 }
 
 
@@ -481,8 +508,11 @@ bool cMyCustomDevice::getPosition(cVector3d& a_position)
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
-{
+void ceiling(double x, double y, double z, cMatrix3d& res) {
+    res.set(0, -z, y, z, 0, -x, -y, x, 0);
+}
+
+bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation){
     // check if the device is read. See step 3.
     if (!m_deviceReady) return (C_ERROR);
 
@@ -509,50 +539,44 @@ bool cMyCustomDevice::getRotation(cMatrix3d& a_rotation)
 
     bool result = C_SUCCESS;
 
-    // variables that describe the rotation matrix
-    cMatrix3d frame;
-    frame.identity();
+    nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+        return (C_ERROR);
+    }
 
-	INT32 motor1_cnt, motor2_cnt;
-	double motor1_angle, motor2_angle;
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR1_ANGLE, sizeof(motor1_cnt), &motor1_cnt);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor1 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		motor1_angle = 2.0*M_PI / 1024.0 / 5.0 / 4.0*(motor1_cnt - m_motor1_zero_position);
-	}
+    if (!aInput.motorState1 || !aInput.motorState2) {
+        printf("[AGILE_EYE] Motor state is not ready \n");
+        m_deviceReady = false;
 
-	nErr = AdsSyncReadReq(&Addr, INDEX_GROUP, MOTOR2_ANGLE, sizeof(motor2_cnt), &motor2_cnt);
-	if (nErr != 0) {
-		printf("[TC:ADS] Motor2 Read Error: %d\n", nErr);
-		return (C_ERROR);
-	}
-	else {
-		motor2_angle = 2.0*M_PI / 1024.0 / 5.0 / 4.0*(motor2_cnt - m_motor2_zero_position);
-	}
+        printf("[AGILE_EYE] restore loop start\n");
+        for (int i = 0; i < 30; i++) {
+            nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+            if (nErr != 0) {
+                printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+            }
 
-    //// if the device does not provide any rotation capabilities 
-    //// set the rotation matrix equal to the identity matrix.
-	//double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+            m_deviceReady = aInput.motorState1 && aInput.motorState2;
+            if (!aInput.motorState1) printf("[AGILE_EYE] Trial %d, Failed to enable motor1\n", i);
+            if (!aInput.motorState2) printf("[AGILE_EYE] Trial %d, Failed to enable motor2\n", i);
+            if (m_deviceReady) break;
+        }
+        printf("[AGILE_EYE] restore loop end\n");
 
-    //r00 = 1.0;  r01 = 0.0;  r02 = 0.0;
-    //r10 = 0.0;  r11 = 1.0;  r12 = 0.0;
-    //r20 = 0.0;  r21 = 0.0;  r22 = 1.0;
+        return C_ERROR;
+    }
 
-    //frame.set(r00, r01, r02, r10, r11, r12, r20, r21, r22);
-
-	calcForwardKinematics(motor1_angle, motor2_angle, frame);
-
-    // store new rotation matrix
-    a_rotation = frame;
-
-    // estimate angular velocity
-    estimateAngularVelocity(a_rotation);
-
-	// calculate Jacobian
-	calcJacobian(motor1_angle, motor2_angle);
+    double axis1, axis2, axis3, angle;
+    angle = sqrt(aInput.u * aInput.u + aInput.v * aInput.v + aInput.w * aInput.w)/1000.0;
+    axis1 = aInput.u / 1000.0;
+    axis2 = aInput.v / 1000.0;
+    axis3 = aInput.w / 1000.0;
+    if (angle > 0) {
+        a_rotation.setAxisAngleRotationRad(cVector3d(axis1, axis2, axis3), angle);
+    }
+    else {
+        a_rotation.set(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    }
 
     // exit
     return (result);
@@ -665,30 +689,14 @@ bool cMyCustomDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     // setForceToMyDevice(fx, fy, fz);
     // setForceToGripper(fg);
 
-	double motor_torque1, motor_torque2;
-	motor_torque1 = m_Jacobian(0, 0)*tx + m_Jacobian(1, 0)*ty + m_Jacobian(2, 0)*tz;
-	motor_torque2 = m_Jacobian(0, 0)*tx + m_Jacobian(1, 0)*ty + m_Jacobian(2, 0)*tz;
+    aOutput.tau1 = INT(tx * 1000);
+    aOutput.tau2 = INT(ty * 1000);
+    aOutput.tau3 = INT(tz * 1000);
 
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR1_TORQUE, sizeof(motor_torque1), &motor_torque1);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR1 Write Torque Error: %d\n", nErr);
-		return(C_ERROR);
-	}
-	else {
-		result = C_SUCCESS;
-	}
-
-	nErr = AdsSyncWriteReq(&Addr, INDEX_GROUP, MOTOR2_TORQUE, sizeof(motor_torque2), &motor_torque2);
-	if (nErr != 0) {
-		printf("[TC:ADS] MOTOR2 Write Torque Error: %d\n", nErr);
-		return(C_ERROR);
-	}
-	else {
-		result = C_SUCCESS;
-	}
-
-    // exit
-    return (result);
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 }
 
 
