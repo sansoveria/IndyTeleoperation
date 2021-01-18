@@ -123,6 +123,7 @@ bool CustomIndyDedicatedTCPTestClient::Run()
 
 void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, double * forceTorque, int& cmode) {
 	// masterPos, indyPos: position in m, axisangle in rad
+	// forceTorque: [0,1,2] - force in N, [3,4,5] - torque in Nm
 	// passivityPort: reserved for later
 	// cmode: current Indy cmode (ex - 0: stationary, 1: joint move, ..., 20: teleoperation mode) 
 
