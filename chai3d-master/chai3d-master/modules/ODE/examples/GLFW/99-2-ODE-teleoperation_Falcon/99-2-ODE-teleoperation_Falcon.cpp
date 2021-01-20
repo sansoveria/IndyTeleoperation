@@ -41,9 +41,9 @@ bool mirroredDisplay = false;
 // CHAI3D VARIABLES
 //---------------------------------------------------------------------------
 enum {
-	MANIPULATION_MODE = 0,
-	MOBILE_MODE = 1, 
-	RECOVERY_MODE = 2, 
+	IDLE_MODE = 0,
+	VELOCITY_MODE = 1, 
+	POSITION_MODE = 2, 
 };
 
 cWorld* world;
@@ -62,15 +62,13 @@ double workspaceScaleFactor = 10.0;
 
 // Device state variables
 cVector3d posMaster, posSlave;
-cVector3d posOrigin;
+cVector3d posOrigin, posFalconRef;
 cMatrix3d rotMaster, rotSlave;
 cVector3d sensorForce, sensorTorque, renderForce, renderTorque;
-int controlMode = RECOVERY_MODE;
-int countRecoveryMode = 0;
-bool manipulationReady = false;
-bool button1Clicked = false;
-bool button2Clicked = false;
-
+int controlMode = IDLE_MODE;
+int previousControlMode = IDLE_MODE;
+bool isButton1Clicked = false;
+bool isButton2Clicked = false;
 
 cMesh* cursor = new cMesh();
 cMesh* tool = new cMesh();
@@ -403,14 +401,14 @@ void updateGraphics(void)
 {
 	// Frequency widget update
 	std::string strControlMode;
-	if (controlMode == MANIPULATION_MODE) {
-		strControlMode = "Manipulation Mode";
+	if (controlMode == IDLE_MODE) {
+		strControlMode = "Idle Mode";
 	}
-	if (controlMode == MOBILE_MODE) {
-		strControlMode = "Mobile Mode";
+	if (controlMode == VELOCITY_MODE) {
+		strControlMode = "Velocity Mode";
 	}
-	if (controlMode == RECOVERY_MODE) {
-		strControlMode = "Recovery Mode";
+	if (controlMode == POSITION_MODE) {
+		strControlMode = "Position Mode";
 	}
 
 	labelRates->setText(
@@ -420,8 +418,7 @@ void updateGraphics(void)
 		+ cStr(freqCounterAgileEye.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterIndy.getFrequency(), 0) + " Hz / "
 		+ strControlMode + " / "
-		+ cStr(indy_cmode) + " / "
-		+ cStr(manipulationReady)
+		+ cStr(indy_cmode)
 	);
 	labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), height * 0.05);
 	labelRates->setFontScale(1.0 / 500.0 * height);
@@ -473,7 +470,6 @@ void updateFalcon () {
 
 	int count = 0;
 	double falconTimeStep = 0.001;
-	countRecoveryMode = 0;
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
 	{
@@ -492,54 +488,59 @@ void updateFalcon () {
 		// update position and orientation of tool
 		cVector3d posFalcon;
 		Falcon->getPosition(posFalcon);
-		posMaster = posOrigin + workspaceScaleFactor*cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
-		cursor->setLocalPos(posMaster);			// for axis check
-		tool->setLocalPos(posMaster);
-
+		
 		// button handling
 		bool button1, button2;
 		Falcon->getUserSwitch(1, button1);
 		Falcon->getUserSwitch(2, button2);
-		if (button1) {
-			button1Clicked = true;			
-		}
-		else {
-			if (button1Clicked) {
-				// button up
-				printf("Button1 clicked \n");
-				switch (controlMode) {
-				case MANIPULATION_MODE:
-				case RECOVERY_MODE:
-					if (indy_cmode == 20) indyTCP.ToggleTeleoperationMode();					
-					manipulationReady = false;
-					controlMode = MOBILE_MODE;
-					break;
-				case MOBILE_MODE:
-					countRecoveryMode = 0;
-					controlMode = RECOVERY_MODE;
-					break;
+		if (isButton1Clicked || isButton2Clicked) {
+			if (isButton1Clicked) {
+				if (!button1) {
+					controlMode = IDLE_MODE;
+					isButton1Clicked = false;
+				}
+				else {
+					controlMode = VELOCITY_MODE;
 				}
 			}
-			button1Clicked = false;
-		}
-
-		if (button2) {
-			button2Clicked = true;
+			if (isButton2Clicked) {
+				if (!button2) {
+					controlMode = IDLE_MODE;
+					isButton2Clicked = false;
+				}
+				else {
+					controlMode = POSITION_MODE;
+				}
+			}
 		}
 		else {
-			if (button2Clicked) {
-				// button up
-				// Do something
+			if (button1) {
+				isButton1Clicked = true;
+				controlMode = VELOCITY_MODE;
+				// set reference falcon position 
+				posFalconRef = posFalcon;
 			}
-			button2Clicked = false;
+			else if (button2) {
+				isButton2Clicked = true;
+				controlMode = POSITION_MODE;
+				// set falcon origin position so that current master position becomes slave position
+				posFalconRef = posFalcon;
+				posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
+				posMaster = posSlave;
+			}
+			else {
+				controlMode = IDLE_MODE;
+			}
 		}
-
+		
 		cVector3d posError, rotErrorAxisAngle;
 		cMatrix3d rotMasterTrans, rotError;
 		renderForce = cVector3d(0.0, 0.0, 0.0);
 		double linearStiffness, rotationalStiffness;
 		switch (controlMode) {
-		case MANIPULATION_MODE:
+		case POSITION_MODE:
+			posMaster = posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
+
 			linearStiffness = 100.0;
 			rotationalStiffness = 0.5;
 			posError = posSlave - posMaster;
@@ -565,10 +566,10 @@ void updateFalcon () {
 			printf("%.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", sensorForce(0), sensorForce(1), sensorForce(2), sensorTorque(0), sensorTorque(1), sensorTorque(2));
 			break;
 
-		case MOBILE_MODE:	
+		case VELOCITY_MODE:	
 			linearStiffness = 1000.0;
 			rotationalStiffness = 0.0;
-			posError = cVector3d(0.0, 0.0, 0.0) - posFalcon;
+			posError = posFalconRef - posFalcon;
 			renderForce = linearStiffness * posError;
 
 			if (renderForce.length() > 2.0) {
@@ -578,57 +579,17 @@ void updateFalcon () {
 
 			renderTorque.set(0, 0, 0);
 			
-			/*// torque test
-			rotMaster.transr(rotMasterTrans);
-			rotError = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotMasterTrans * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
-			rotErrorAxisAngle = axisAngle(rotError);
-			renderTorque = 0.5 * rotErrorAxisAngle;
-
-			if (renderTorque.length() > 0.19) {
-				renderTorque = renderTorque / renderTorque.length() * 0.19;
-				printf("Agile Eye saturated (torque norm: %.5f,\terror norm: %.5f)\n", renderTorque.length(), rotErrorAxisAngle.length());
-			}*/
-
 			if (posError.length() > 0.01) {
 				posOrigin += falconTimeStep * 30.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();
-				originFalcon->setLocalPos(posOrigin);
+				posMaster += falconTimeStep * 30.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();				
 			}
-			break;
-
-		case RECOVERY_MODE:
-			if (countRecoveryMode > 3000) {
-				linearStiffness = 1500.0;
-				rotationalStiffness = 0.5;
-			}
-			else {
-				linearStiffness = 1500.0 / 3000.0 * countRecoveryMode;
-				rotationalStiffness = 0.5 / 3000.0 * countRecoveryMode;
-				//printf("%d \n", countRecoveryMode);
-			}
-			posError = posSlave- posMaster;
-			renderForce = linearStiffness * cVector3d(-posError(0), -posError(1), posError(2));
-
-			if (renderForce.length() > 2.0) {
-				printf("Falcon saturated (force norm: %.5f)\n", renderForce.length());
-				renderForce = renderForce / renderForce.length() * 2.0;
-			}
-
-			rotMaster.transr(rotMasterTrans);
-			rotError = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotMasterTrans * rotSlave * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
-			rotErrorAxisAngle = axisAngle(rotError);
-			renderTorque = rotationalStiffness * rotErrorAxisAngle;
-
-			if (renderTorque.length() > 0.19) {
-				printf("Agile Eye saturated (torque norm: %.5f)\n", renderTorque.length());
-				renderTorque = renderTorque / renderTorque.length() * 0.19;
-			}
-
-			if (posError.length() < 0.005 && rotErrorAxisAngle.length() < 5.0*M_PI/360.0) manipulationReady = true;
-			else manipulationReady = false;
-
-			countRecoveryMode++;
 			break;
 		}
+
+		cursor->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2)));			// for axis check
+		tool->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2)));
+		originFalcon->setLocalPos(posOrigin);
+
 		Falcon->setForce(renderForce + cVector3d(0.0, 0.0, 4.0));
 
 		count++;
