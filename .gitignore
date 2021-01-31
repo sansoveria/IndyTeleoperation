@@ -350,4 +350,4 @@ MigrationBackup/
 .ionide/
 
 # ignore logging data
-*/logging_data/*
+logging_data/
