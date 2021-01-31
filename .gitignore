@@ -350,4 +350,4 @@ MigrationBackup/
 .ionide/
 
 # ignore logging data
-./chai3d-master/chai3d-master/modules/ODE/logging_data/*
+*/logging_data/*
