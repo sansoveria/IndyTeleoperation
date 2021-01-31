@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<TcBootProject CreateTime="2021-01-18T09:05:01">
+<TcBootProject CreateTime="2021-01-27T21:11:36">
 	<System>
 		<LockedMemSize>33554432</LockedMemSize>
 		<AffinityMask>#x8</AffinityMask>
@@ -429,7 +429,7 @@
 	<ProjectInfo>
 		<ProjectName>TwinCAT Project1</ProjectName>
 		<ProjectGuid>{BF86F063-20E6-4FD2-BC55-4DC80F8A92D2}</ProjectGuid>
-		<ConfigurationFile>C:\Users\chj52\OneDrive\바탕 화면\Donghyeon\chai3d-master\TwinCAT Project1\TwinCAT Project1\TwinCAT Project1.tsproj</ConfigurationFile>
+		<ConfigurationFile>C:\Users\chj52\OneDrive\바탕 화면\Donghyeon\IndyTeleoperation\chai3d-master\TwinCAT Project1\TwinCAT Project1\TwinCAT Project1.tsproj</ConfigurationFile>
 		<DataTypes/>
 		<PlcProjects/>
 		<Tasks/>

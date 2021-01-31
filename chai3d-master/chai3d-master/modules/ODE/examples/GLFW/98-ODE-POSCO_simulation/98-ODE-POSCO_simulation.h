@@ -84,7 +84,7 @@ cLabel* labelTorque;
 cLevel* levelForce;
 cLevel* levelTorque;
 
-double workspaceScaleFactor = 30.0;
+double workspaceScaleFactor = 100.0;
 
 #define TIMESTEP		0.001
 

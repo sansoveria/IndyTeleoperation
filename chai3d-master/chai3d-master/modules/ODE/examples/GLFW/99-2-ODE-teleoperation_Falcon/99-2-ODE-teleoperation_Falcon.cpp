@@ -58,17 +58,18 @@ shared_ptr<cGenericHapticDevice> Falcon;
 shared_ptr<cGenericHapticDevice> AgileEye;
 
 // workspace scale factor
-double workspaceScaleFactor = 10.0;
+double workspaceScaleFactor =10.0;
 
 // Device state variables
 cVector3d posMaster, posSlave;
 cVector3d posOrigin, posFalconRef;
 cMatrix3d rotMaster, rotSlave;
 cVector3d sensorForce, sensorTorque, renderForce, renderTorque;
-int controlMode = IDLE_MODE;
-int previousControlMode = IDLE_MODE;
-bool isButton1Clicked = false;
-bool isButton2Clicked = false;
+int currentControlMode = IDLE_MODE;
+bool controlModeSwitch = true;
+//bool isButton1Clicked = false;
+//bool isButton2Clicked = false;
+bool isButtonClicked = false;
 
 cMesh* cursor = new cMesh();
 cMesh* tool = new cMesh();
@@ -372,6 +373,20 @@ int main(int argc, char* argv[])
 	falconThread = new cThread();
 	falconThread->start(updateFalcon, CTHREAD_PRIORITY_HAPTICS);
 
+	// reset system
+	indyTCP.ResetFTBias();
+	Sleep(1000);
+	printf("FT sensor reset\n");
+	indyTCP.ResetRobot();
+	Sleep(1000);
+	printf("Robot reset\n");
+	indyTCP.MoveToJ(defaultPose);
+	Sleep(3000);
+	printf("Teleopeartion system reset\n");
+	posMaster = posSlave;
+	rotMaster = rotSlave;
+	posOrigin.set(0.626, -0.186, 0.388);
+	if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
 
 	// setup callback when application exits
 	atexit(close);
@@ -400,16 +415,18 @@ int main(int argc, char* argv[])
 void updateGraphics(void)
 {
 	// Frequency widget update
-	std::string strControlMode;
-	if (controlMode == IDLE_MODE) {
-		strControlMode = "Idle Mode";
-	}
-	if (controlMode == VELOCITY_MODE) {
-		strControlMode = "Velocity Mode";
-	}
-	if (controlMode == POSITION_MODE) {
-		strControlMode = "Position Mode";
-	}
+	std::string strcurrentControlMode;
+	if (controlModeSwitch) strcurrentControlMode = "Velocity Mode";
+	else strcurrentControlMode = "Position Mode";
+	//if (currentControlMode == IDLE_MODE) {
+	//	strcurrentControlMode = "Idle Mode";
+	//}
+	//if (currentControlMode == VELOCITY_MODE) {
+	//	strcurrentControlMode = "Velocity Mode";
+	//}
+	//if (currentControlMode == POSITION_MODE) {
+	//	strcurrentControlMode = "Position Mode";
+	//}
 
 	labelRates->setText(
 		"[Graphic freq./Falcon freq./Agile eye freq./Indy freq./Control mode/Indy cmode/manipulationReady] \r\n"
@@ -417,7 +434,7 @@ void updateGraphics(void)
 		+ cStr(freqCounterFalcon.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterAgileEye.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterIndy.getFrequency(), 0) + " Hz / "
-		+ strControlMode + " / "
+		+ strcurrentControlMode + " / "
 		+ cStr(indy_cmode)
 	);
 	labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), height * 0.05);
@@ -462,14 +479,14 @@ cVector3d axisAngle(cMatrix3d rot) {
 	return res;
 }
 
-void updateFalcon () {
+void updateFalcon() {
 	// teleoperation clock
 	cPrecisionClock falconClock;
 	falconClock.start(true);
 
 
 	int count = 0;
-	double falconTimeStep = 0.001;
+	double falconTimeStep = 0.002;
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
 	{
@@ -488,48 +505,59 @@ void updateFalcon () {
 		// update position and orientation of tool
 		cVector3d posFalcon;
 		Falcon->getPosition(posFalcon);
-		
+
 		// button handling
 		bool button1, button2;
 		Falcon->getUserSwitch(1, button1);
 		Falcon->getUserSwitch(2, button2);
-		if (isButton1Clicked || isButton2Clicked) {
-			if (isButton1Clicked) {
+
+		//if (button1) printf("button 1 on \n");
+		//if (button2) printf("button 2 on \n");
+		//if (isButton1Clicked || isButton2Clicked) {
+		if (isButtonClicked){
+			if (controlModeSwitch) {
 				if (!button1) {
-					controlMode = IDLE_MODE;
-					isButton1Clicked = false;
+					currentControlMode = IDLE_MODE;
+					isButtonClicked = false;
 				}
 				else {
-					controlMode = VELOCITY_MODE;
+					currentControlMode = VELOCITY_MODE;
 				}
 			}
-			if (isButton2Clicked) {
-				if (!button2) {
-					controlMode = IDLE_MODE;
-					isButton2Clicked = false;
+			else {
+				if (!button1) {
+					currentControlMode = IDLE_MODE;
+					isButtonClicked = false;
 				}
 				else {
-					controlMode = POSITION_MODE;
+					currentControlMode = POSITION_MODE;
 				}
 			}
 		}
 		else {
 			if (button1) {
-				isButton1Clicked = true;
-				controlMode = VELOCITY_MODE;
-				// set reference falcon position 
-				posFalconRef = posFalcon;
-			}
-			else if (button2) {
-				isButton2Clicked = true;
-				controlMode = POSITION_MODE;
-				// set falcon origin position so that current master position becomes slave position
-				posFalconRef = posFalcon;
-				posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
-				posMaster = posSlave;
+				if (controlModeSwitch) {
+					printf("Velocity mode started\n");
+					isButtonClicked = true;
+					currentControlMode = VELOCITY_MODE;
+					// set reference falcon position 
+					posFalconRef = posFalcon;
+					if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
+				}
+				else {
+					printf("Position mode started\n");
+					isButtonClicked = true;
+					currentControlMode = POSITION_MODE;
+					// set falcon origin position so that current master position becomes slave position
+					posFalconRef = posFalcon;
+					posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
+					posMaster = posSlave;
+					if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
+				}
 			}
 			else {
-				controlMode = IDLE_MODE;
+				currentControlMode = IDLE_MODE;
+				if (indy_cmode == 20) indyTCP.ToggleTeleoperationMode();
 			}
 		}
 		
@@ -537,7 +565,7 @@ void updateFalcon () {
 		cMatrix3d rotMasterTrans, rotError;
 		renderForce = cVector3d(0.0, 0.0, 0.0);
 		double linearStiffness, rotationalStiffness;
-		switch (controlMode) {
+		switch (currentControlMode) {
 		case POSITION_MODE:
 			posMaster = posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
 
@@ -558,9 +586,9 @@ void updateFalcon () {
 			renderTorque = rotationalStiffness * rotErrorAxisAngle;
 			renderTorque += 0.1 * cVector3d(-sensorTorque(0), -sensorTorque(1), sensorTorque(2));
 
-			if (renderTorque.length() > 0.19) {
+			if (renderTorque.length() > 0.10) {
 				printf("Agile Eye saturated (torque norm: %.5f)\n", renderTorque.length());
-				renderTorque = renderTorque / renderTorque.length() * 0.19;				
+				renderTorque = renderTorque / renderTorque.length() * 0.10;				
 			}
 			
 			printf("%.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", sensorForce(0), sensorForce(1), sensorForce(2), sensorTorque(0), sensorTorque(1), sensorTorque(2));
@@ -579,10 +607,14 @@ void updateFalcon () {
 
 			renderTorque.set(0, 0, 0);
 			
-			if (posError.length() > 0.01) {
-				posOrigin += falconTimeStep * 30.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();
-				posMaster += falconTimeStep * 30.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();				
+			if (posError.length() > 0.005) {
+				posOrigin += falconTimeStep * 10.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();
+				posMaster += falconTimeStep * 10.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();				
 			}
+			break;
+
+		case IDLE_MODE:
+			//posMaster = posSlave;
 			break;
 		}
 
@@ -624,7 +656,9 @@ void updateAgileEye() {
 		// update position and orientation of tool
 		cMatrix3d rotAgileEye;
 		AgileEye->getRotation(rotAgileEye);
-		rotMaster = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotAgileEye * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+		if (currentControlMode != IDLE_MODE) {
+			rotMaster = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotAgileEye * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+		}
 		//rotMaster = rotAgileEye;
 
 		// attach cursor (show device position)
@@ -689,7 +723,7 @@ void updateIndy() {
 
 
 		customTCP.SendIndyCommandAndReadState(masterPos, passivityPort, indyPos, indyForceTorque, cmode);
-		//if (controlMode == MANIPULATION_MODE) {
+		//if (currentControlMode == MANIPULATION_MODE) {
 		//	for (int i = 0; i < 6; i++) {
 		//		printf("%.5f, ", masterPos[i]);
 		//	}
@@ -802,19 +836,31 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 
 	// option - start Indy teleoperation mode
 	case GLFW_KEY_M:
-		if (manipulationReady && indy_cmode != 20) {
-			indyTCP.ToggleTeleoperationMode();
-			controlMode = MANIPULATION_MODE;
-		}
+		indyTCP.ToggleTeleoperationMode();
 
+		break;
+
+	// option - start Indy teleoperation mode
+	case GLFW_KEY_S:
+		controlModeSwitch = !controlModeSwitch;
 		break;
 
 	// option - reset Indy and FT sensor
 	case GLFW_KEY_R:
+		if (indy_cmode == 20) indyTCP.ToggleTeleoperationMode();
+		indyTCP.ResetFTBias();		
+		Sleep(1000);
+		printf("FT sensor reset\n");
 		indyTCP.ResetRobot();
-		indyTCP.ResetFTBias();
-		Sleep(3000);
+		Sleep(1000);
+		printf("Robot reset\n");
 		indyTCP.MoveToJ(defaultPose);
+		Sleep(3000);
+		printf("Teleopeartion system reset\n");
+		posMaster = posSlave;
+		rotMaster = rotSlave;
+		posOrigin.set(0.626, -0.186, 0.388);
+		if(indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
 		break;
 	}
 }
