@@ -348,3 +348,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# ignore logging data
+./chai3d-master/chai3d-master/module/ODE/logging_data/*
