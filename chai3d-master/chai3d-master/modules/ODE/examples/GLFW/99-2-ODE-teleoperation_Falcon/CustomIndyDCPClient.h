@@ -55,15 +55,16 @@ public:
 	//};
 
 	enum {
-		SIZE_USER_INPUT = 33,
+		SIZE_USER_INPUT = 57,
 		SIZE_INDY_STATE = 57,
 	};
 
 #pragma pack(push)  /* push current alignment to stack */
 #pragma pack(1)     /* set alignment to 1 byte boundary */
-	struct CustomUserInputStruct{					// 33 byte
+	struct CustomUserInputStruct{					// 57 byte
 		int invokeId;								// message ID (4 byte)
 		int targetPos[6];							// master device position in 10um and Euler angle in 0.001rad (24 byte)
+		int targetVel[6];							// master device velocity in 10um and Euler angle in 0.001rad (24 byte)
 		int passivityPort;							// reserved for passivity port (4 byte)
 		unsigned char sof;							// source of Frame (1 byte)
 	};
@@ -132,6 +133,6 @@ public:
 
 	////// Cmd Transmittion
 	bool Run();
-	void SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, double * forceTorque, int& cmode);
+	void SendIndyCommandAndReadState(double * masterPos, double * masterVel, double passivityPort, double * indyPos, double * forceTorque, int& cmode);
 
 }; /* end of class */

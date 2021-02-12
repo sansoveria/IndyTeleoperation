@@ -65,6 +65,7 @@ cVector3d posMaster, posSlave;
 cVector3d posOrigin, posFalconRef;
 cMatrix3d rotMaster, rotSlave;
 cVector3d sensorForce, sensorTorque, renderForce, renderTorque;
+double masterPosePrev[6] = { 0.0 };
 int currentControlMode = IDLE_MODE;
 bool controlModeSwitch = true;
 //bool isButton1Clicked = false;
@@ -429,7 +430,7 @@ void updateGraphics(void)
 	//}
 
 	labelRates->setText(
-		"[Graphic freq./Falcon freq./Agile eye freq./Indy freq./Control mode/Indy cmode/manipulationReady] \r\n"
+		"[Graphic freq./Falcon freq./Agile eye freq./Indy freq./Control mode/Indy cmode] \r\n"
 		+ cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterFalcon.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterAgileEye.getFrequency(), 0) + " Hz / "
@@ -542,7 +543,6 @@ void updateFalcon() {
 					currentControlMode = VELOCITY_MODE;
 					// set reference falcon position 
 					posFalconRef = posFalcon;
-					if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
 				}
 				else {
 					printf("Position mode started\n");
@@ -552,12 +552,10 @@ void updateFalcon() {
 					posFalconRef = posFalcon;
 					posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
 					posMaster = posSlave;
-					if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
 				}
 			}
 			else {
 				currentControlMode = IDLE_MODE;
-				if (indy_cmode == 20) indyTCP.ToggleTeleoperationMode();
 			}
 		}
 		
@@ -674,18 +672,183 @@ void updateAgileEye() {
 	agileEyeThreadFinished = true;
 }
 
+class cFilteredDerivative {
+public:
+	cFilteredDerivative() {
+		_dT = 0.002;
+		_cutOffFreq = 50;
+	}
+
+	cFilteredDerivative(double dT, double cutOffFreq) {
+		setParam(dT, cutOffFreq);
+	}
+
+	~cFilteredDerivative();
+
+	void setParam(double dT, double cutOffFreq) {
+		_dT = dT;
+		_cutOffFreq = cutOffFreq;
+	}
+
+	double filter(double x) {
+		double w = 2.0 * M_PI*_cutOffFreq;
+		w = (2 / _dT)*::tan(w*_dT / 2);   // warping to match cut-off frequency
+
+		double y = (2.0 - w * _dT) / (2.0 + w * _dT)*_yPrev + 2.0*w / (2.0 + w * _dT)*x - 2.0*w / (2.0 + w * _dT)*_xPrev;
+
+		_xPrev = x;
+		_yPrev = y;
+
+		return y;
+	}
+
+	double filter(double x, double dT) {
+		double w = 2.0 * M_PI*_cutOffFreq;
+		w = (2 / dT)*::tan(w*dT / 2);   // warping to match cut-off frequency
+
+		double y = (2.0 - w * dT) / (2.0 + w * dT)*_yPrev + 2.0*w / (2.0 + w * dT)*x - 2.0*w / (2.0 + w * dT)*_xPrev;
+		
+		_xPrev = x;
+		_yPrev = y;
+		
+		return y;
+	}
+
+	void reset(double x) {
+		_yPrev = 0.0;
+		_xPrev = x;
+	}
+
+private:
+	double _dT, _cutOffFreq;
+	double _yPrev;
+	double _xPrev;
+};
+
+class cIndyTransform {
+public:
+	cIndyTransform() {
+		_localTransformation.identity();
+	}
+
+	~cIndyTransform(){}
+
+	void setParam(double dT, double cutOffFreq, cMatrix3d localTransform) {
+		for (int i = 0; i < 6; i++) {
+			_derivative[i].setParam(dT, cutOffFreq);
+		}
+		_localTransformation = localTransform;
+	}
+
+	void updateCommand(cVector3d posInMasterSpace, cMatrix3d rotInMasterSpace, double dT, bool INIT_FILTER) {
+		cMatrix3d rotMatInIndySpace = rotInMasterSpace * cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0);
+		cVector3d rotVecInIndySpace = axisAngle(rotMatInIndySpace);
+
+		_poseCommandInIndyCoordinate[0] = posInMasterSpace(0);
+		_poseCommandInIndyCoordinate[1] = posInMasterSpace(1);
+		_poseCommandInIndyCoordinate[2] = posInMasterSpace(2);
+		_poseCommandInIndyCoordinate[3] = rotVecInIndySpace(0);
+		_poseCommandInIndyCoordinate[4] = rotVecInIndySpace(1);
+		_poseCommandInIndyCoordinate[5] = rotVecInIndySpace(2);
+
+		if (INIT_FILTER) {
+			for (int i = 0; i < 6; i++) {
+				_derivative[i].reset(_poseCommandInIndyCoordinate[i]);
+			}
+		}
+
+		cVector3d xidot, rotationalVelocity;
+		cMatrix3d dexpXidot, dexpXidotTranspose;
+		_velocityCommandInIndyCoordinate[0] = _derivative[0].filter(_poseCommandInIndyCoordinate[0], dT);
+		_velocityCommandInIndyCoordinate[1] = _derivative[1].filter(_poseCommandInIndyCoordinate[1], dT);
+		_velocityCommandInIndyCoordinate[2] = _derivative[2].filter(_poseCommandInIndyCoordinate[2], dT);
+		xidot(0) = _derivative[3].filter(_poseCommandInIndyCoordinate[3], dT);
+		xidot(1) = _derivative[4].filter(_poseCommandInIndyCoordinate[4], dT);
+		xidot(2) = _derivative[5].filter(_poseCommandInIndyCoordinate[5], dT);
+		dexp(xidot, dexpXidot);
+		dexpXidot.transr(dexpXidotTranspose);
+		rotationalVelocity = dexpXidotTranspose * xidot;
+		_velocityCommandInIndyCoordinate[3] = rotationalVelocity(0);
+		_velocityCommandInIndyCoordinate[4] = rotationalVelocity(1);
+		_velocityCommandInIndyCoordinate[5] = rotationalVelocity(2);
+	}
+
+	void getPoseCommand(double * command) {
+		for (int i = 0; i < 6; i++) {
+			command[i] = _poseCommandInIndyCoordinate[i];
+		}
+	}
+
+	void getVelocityCommand(double * command) {
+		for (int i = 0; i < 6; i++) {
+			command[i] = _velocityCommandInIndyCoordinate[i];
+		}
+	}
+
+private:
+	void ceiling(cVector3d input, cMatrix3d& res) {
+		res(0, 0) = 0.0;
+		res(0, 1) = -input(2);
+		res(0, 2) = input(1);
+		res(1, 0) = input(2);
+		res(1, 1) = 0.0;
+		res(1, 2) = -input(0);
+		res(2, 0) = -input(1);
+		res(2, 1) = input(0);
+		res(2, 2) = 0.0;
+	}
+
+	void dexp(cVector3d input, cMatrix3d& res) {
+		cMatrix3d ceiling_, identity_;
+		cMatrix3d comp1, comp2;
+		double alpha_, beta_, inputNorm_;
+		ceiling(input, ceiling_);
+		identity_.identity();
+
+		inputNorm_ = input.length();
+		if (inputNorm_ == 0.0) {
+			alpha_ = 1.0;
+			beta_ = 1.0;
+		}
+		else {
+			alpha_ = sin(inputNorm_ / 2.0) * cos(inputNorm_ / 2.0) / inputNorm_ * 2.0;
+			beta_ = sin(inputNorm_ / 2.0) * sin(inputNorm_ / 2.0) / inputNorm_ * 2.0 / inputNorm_ * 2.0;
+		}
+
+		comp1 = ceiling_;
+		comp2 = ceiling_;
+		comp1 *= 0.5*beta_;
+		comp2 *= 1.0 / inputNorm_ * (1.0 - alpha_);
+		res.identity();
+		res.add(comp1);
+		res.add(comp2*ceiling_);
+	}
+
+	cMatrix3d _localTransformation;
+	cFilteredDerivative _derivative[6];
+
+	double _poseCommandInIndyCoordinate[6];
+	double _velocityCommandInIndyCoordinate[6];
+};
+
 void updateIndy() {
 	// teleoperation clock
 	cPrecisionClock indyClock;
 	indyClock.start(true);
 
 	int count = 0;
+	double dT = 0.002;
+	cIndyTransform indyCommand;
+	indyCommand.setParam(0.002, 50, cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
+
+	int indy_cmode_save = 0;
+
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
 	{
 		// retrieve teleoperation time and compute next interval
 		double time = indyClock.getCurrentTimeSeconds();
-		if (time < 0.002) {
+		if (time < dT) {
 			continue;
 		}
 
@@ -695,34 +858,49 @@ void updateIndy() {
 		indyClock.reset();
 		indyClock.start();
 
+		// set indy cmode
+		if (currentControlMode == IDLE_MODE) {
+			if (indy_cmode == 20) indyTCP.ToggleTeleoperationMode();
+		}
+		else {
+			if (indy_cmode != 20) indyTCP.ToggleTeleoperationMode();
+		}
+
+
 		// update position and orientation of Indy
 		cVector3d posIndy;
 		cMatrix3d rotIndy;
-		double masterPos[6], indyPos[6], indyForceTorque[6];
+		double masterPose[6], masterVel[6], indyPose[6], indyForceTorque[6];
 		double passivityPort = 0.0;
+		cMatrix3d masterRotMat;
 		int cmode;
 		cVector3d masterRot; 
 		if (indy_cmode == 20) {
-			masterRot = axisAngle(rotMaster * cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
-			masterPos[0] = posMaster(0);
-			masterPos[1] = posMaster(1);
-			masterPos[2] = posMaster(2);
-			masterPos[3] = masterRot(0);
-			masterPos[4] = masterRot(1);
-			masterPos[5] = masterRot(2);
-		}
-		else {
-			masterRot = axisAngle(rotSlave * cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
-			masterPos[0] = posSlave(0);
-			masterPos[1] = posSlave(1);
-			masterPos[2] = posSlave(2);
-			masterPos[3] = masterRot(0);
-			masterPos[4] = masterRot(1);
-			masterPos[5] = masterRot(2);
-		}
+			if (indy_cmode_save != 20)
+				indyCommand.updateCommand(posMaster, rotMaster, dT, true);
+			else {
+				indyCommand.updateCommand(posMaster, rotMaster, dT, false);
+			}
 
-
-		customTCP.SendIndyCommandAndReadState(masterPos, passivityPort, indyPos, indyForceTorque, cmode);
+			indyCommand.getPoseCommand(masterPose);
+			indyCommand.getVelocityCommand(masterVel);
+			//masterRotMat = rotMaster * cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0);
+			//masterRot = axisAngle(masterRotMat);
+			//masterPose[0] = posMaster(0);
+			//masterPose[1] = posMaster(1);
+			//masterPose[2] = posMaster(2);
+			//masterPose[3] = masterRot(0);
+			//masterPose[4] = masterRot(1);
+			//masterPose[5] = masterRot(2);
+			//masterVel[0] = 0.0;
+			//masterVel[1] = 0.0;
+			//masterVel[2] = 0.0;
+			//masterVel[3] = 0.0;
+			//masterVel[4] = 0.0;
+			//masterVel[5] = 0.0;
+		}
+		
+		customTCP.SendIndyCommandAndReadState(masterPose, masterVel, passivityPort, indyPose, indyForceTorque, cmode);
 		//if (currentControlMode == MANIPULATION_MODE) {
 		//	for (int i = 0; i < 6; i++) {
 		//		printf("%.5f, ", masterPos[i]);
@@ -735,13 +913,13 @@ void updateIndy() {
 		//}
 
 		double axis1, axis2, axis3, angle;
-		posIndy(0) = indyPos[0];
-		posIndy(1) = indyPos[1];
-		posIndy(2) = indyPos[2];
-		angle = sqrt(indyPos[3] * indyPos[3] + indyPos[4] * indyPos[4] + indyPos[5] * indyPos[5]);
-		axis1 = indyPos[3];
-		axis2 = indyPos[4];
-		axis3 = indyPos[5];
+		posIndy(0) = indyPose[0];
+		posIndy(1) = indyPose[1];
+		posIndy(2) = indyPose[2];
+		angle = sqrt(indyPose[3] * indyPose[3] + indyPose[4] * indyPose[4] + indyPose[5] * indyPose[5]);
+		axis1 = indyPose[3];
+		axis2 = indyPose[4];
+		axis3 = indyPose[5];
 		if (angle > 0) {
 			rotIndy.setAxisAngleRotationRad(cVector3d(axis1, axis2, axis3), angle);
 		}
@@ -752,6 +930,7 @@ void updateIndy() {
 		sensorForce.set(indyForceTorque[0], indyForceTorque[1], indyForceTorque[2]);
 		sensorTorque.set(indyForceTorque[3], indyForceTorque[4], indyForceTorque[5]);
 
+		indy_cmode_save = indy_cmode;
 		indy_cmode = cmode;
 
 		posSlave = posIndy;
@@ -832,12 +1011,6 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 	// option - go home
 	case GLFW_KEY_H:
 		indyTCP.GoHome();
-		break;
-
-	// option - start Indy teleoperation mode
-	case GLFW_KEY_M:
-		indyTCP.ToggleTeleoperationMode();
-
 		break;
 
 	// option - start Indy teleoperation mode

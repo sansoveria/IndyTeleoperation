@@ -121,7 +121,7 @@ bool CustomIndyDedicatedTCPTestClient::Run()
 	return (userInput.val.invokeId == indyState.val.invokeId && indyState.val.sof == SOF_SERVER);
 }
 
-void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double passivityPort, double * indyPos, double * forceTorque, int& cmode) {
+void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * masterPos, double * masterVel, double passivityPort, double * indyPos, double * forceTorque, int& cmode) {
 	// masterPos, indyPos: position in m, axisangle in rad
 	// passivityPort: reserved for later
 	// cmode: current Indy cmode (ex - 0: stationary, 1: joint move, ..., 20: teleoperation mode) 
@@ -135,6 +135,12 @@ void CustomIndyDedicatedTCPTestClient::SendIndyCommandAndReadState(double * mast
 	userInput.val.targetPos[3] = (int)(masterPos[3] * 1000.0);
 	userInput.val.targetPos[4] = (int)(masterPos[4] * 1000.0);
 	userInput.val.targetPos[5] = (int)(masterPos[5] * 1000.0);
+	userInput.val.targetVel[0] = (int)(masterVel[0] * 100000.0);
+	userInput.val.targetVel[1] = (int)(masterVel[1] * 100000.0);
+	userInput.val.targetVel[2] = (int)(masterVel[2] * 100000.0);
+	userInput.val.targetVel[3] = (int)(masterVel[3] * 1000.0);
+	userInput.val.targetVel[4] = (int)(masterVel[4] * 1000.0);
+	userInput.val.targetVel[5] = (int)(masterVel[5] * 1000.0);
 	
 	// Run TCP communication
 	if (Run()) {
