@@ -195,15 +195,15 @@ HRESULT CModule1::CycleUpdate(ITcTask* ipTask, ITcUnknown* ipCaller, ULONG_PTR c
 	if (SUCCEEDED(ipTask->GetCycleCounter(&cnt)))
 	{
 		// calculate FK and Jacobian
-		float r11, r12, r13, r21, r22, r23, r31, r32, r33;
-		float j11, j12, j21, j22, j31, j32;
-		float theta1, theta2;
-		float c1, s1, c2, s2, a, ca, sa;
-		float angle, axis1, axis2, axis3;
-		theta1 = float(m_Inputs.Position1 - m_DeviceStates.AngleZero1) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
-		theta2 = float(m_Inputs.Position2 - m_DeviceStates.AngleZero2) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
-		m_DeviceStates.Angle1 = LONGLONG(theta1 / TC_M_PI * 180.0 * 1000.0);		// degree
-		m_DeviceStates.Angle2 = LONGLONG(theta2 / TC_M_PI * 180.0 * 1000.0);		// degree
+		double r11, r12, r13, r21, r22, r23, r31, r32, r33;
+		double j11, j12, j21, j22, j31, j32;
+		double theta1, theta2;
+		double c1, s1, c2, s2, a, ca, sa;
+		double angle, axis1, axis2, axis3;
+		theta1 = -double(m_Inputs.Position1 - m_DeviceStates.AngleZero1) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
+		theta2 = -double(m_Inputs.Position2 - m_DeviceStates.AngleZero2) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
+		m_DeviceStates.Angle1 = LONG(theta1 / TC_M_PI * 180.0 * 1000.0);		// degree
+		m_DeviceStates.Angle2 = LONG(theta2 / TC_M_PI * 180.0 * 1000.0);		// degree
 		c1 = cos_(theta1);
 		s1 = sin_(theta1);
 		c2 = cos_(theta2);
@@ -265,7 +265,12 @@ HRESULT CModule1::CycleUpdate(ITcTask* ipTask, ITcUnknown* ipCaller, ULONG_PTR c
 			torque1 = tau1 * j11 + tau2 * j21 + tau3 * j31;
 			torque2 = tau1 * j12 + tau2 * j22 + tau3 * j32;
 
+			
 			LONG targetTorque1, targetTorque2;
+			//targetTorque1 = LONG(tau2In / NOMINAL_TORQUE * 1000.0);
+			//targetTorque2 = LONG(tau3In / NOMINAL_TORQUE * 1000.0);
+			//m_DeviceStates.Angle1 = LONG(torque1 / NOMINAL_TORQUE * 1000.0);
+			//m_DeviceStates.Angle2 = LONG(torque2 / NOMINAL_TORQUE * 1000.0);
 			targetTorque1 = LONG(torque1 / NOMINAL_TORQUE * 1000.0);
 			targetTorque2 = LONG(-torque2 / NOMINAL_TORQUE * 1000.0);
 			if (targetTorque1 > 1000) targetTorque1 = 1000;

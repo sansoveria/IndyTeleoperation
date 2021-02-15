@@ -236,7 +236,7 @@ void IndyDedicatedTCPTestClient::Run(int cmdID)
 	}
 }
 
-double *IndyDedicatedTCPTestClient::GetJointPos() {
+void IndyDedicatedTCPTestClient::GetJointPos(double * res) {
 	EnterCriticalSection(&DCP_cs);
 
 	// Get joint position
@@ -247,14 +247,19 @@ double *IndyDedicatedTCPTestClient::GetJointPos() {
 		&& resHeader.val.sof == SOF_SERVER)
 	{
 		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
+		for (int i = 0; i < 6; i++) {
+			res[i] = resData.double6dArr[i];
+		}
 	}
-	double zeros[6] = { 0 };
-	return zeros;
+	else {
+		for (int i = 0; i < 6; i++) {
+			res[i] = 0.0;
+		}
+	}
 	LeaveCriticalSection(&DCP_cs);
 }
 
-double *IndyDedicatedTCPTestClient::GetJointVel() {
+void IndyDedicatedTCPTestClient::GetJointVel(double* res) {
 	EnterCriticalSection(&DCP_cs);
 
 	// Get Joint Velocity (Angular)
@@ -265,14 +270,19 @@ double *IndyDedicatedTCPTestClient::GetJointVel() {
 		&& resHeader.val.sof == SOF_SERVER)
 	{
 		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
+		for (int i = 0; i < 6; i++) {
+			res[i] = resData.double6dArr[i];
+		}
 	}
-	double zeros[6] = { 0 };
-	return zeros;
+	else {
+		for (int i = 0; i < 6; i++) {
+			res[i] = 0.0;
+		}
+	}
 	LeaveCriticalSection(&DCP_cs);
 }
 
-double *IndyDedicatedTCPTestClient::GetTaskPos() {
+void IndyDedicatedTCPTestClient::GetTaskPos(double * res) {
 	EnterCriticalSection(&DCP_cs);
 
 	// Get Task position
@@ -283,14 +293,19 @@ double *IndyDedicatedTCPTestClient::GetTaskPos() {
 		&& resHeader.val.sof == SOF_SERVER)
 	{
 		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
+		for (int i = 0; i < 6; i++) {
+			res[i] = resData.double6dArr[i];
+		}
 	}
-	double zeros[6] = { 0 };
-	return zeros;
+	else {
+		for (int i = 0; i < 6; i++) {
+			res[i] = 0.0;
+		}
+	}
 	LeaveCriticalSection(&DCP_cs);
 }
 
-double *IndyDedicatedTCPTestClient::GetTaskVel() {
+void IndyDedicatedTCPTestClient::GetTaskVel(double * res) {
 	EnterCriticalSection(&DCP_cs);
 
 	// Get Task Velocity
@@ -301,14 +316,19 @@ double *IndyDedicatedTCPTestClient::GetTaskVel() {
 		&& resHeader.val.sof == SOF_SERVER)
 	{
 		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
+		for (int i = 0; i < 6; i++) {
+			res[i] = resData.double6dArr[i];
+		}
 	}
-	double zeros[6] = { 0 };
-	return zeros;
+	else {
+		for (int i = 0; i < 6; i++) {
+			res[i] = 0.0;
+		}
+	}
 	LeaveCriticalSection(&DCP_cs);
 }
 
-double *IndyDedicatedTCPTestClient::GetTorque() {
+void IndyDedicatedTCPTestClient::GetTorque(double * res) {
 	EnterCriticalSection(&DCP_cs);
 	// Get Task Velocity
 	Run(CMD_GET_TORQUE, 0);
@@ -318,10 +338,15 @@ double *IndyDedicatedTCPTestClient::GetTorque() {
 		&& resHeader.val.sof == SOF_SERVER)
 	{
 		// Process success: return resHeader.val.dataSize
-		return &resData.double6dArr[0];
+		for (int i = 0; i < 6; i++) {
+			res[i] = resData.double6dArr[i];
+		}
 	}
-	double zeros[6] = { 0 };
-	return zeros;
+	else {
+		for (int i = 0; i < 6; i++) {
+			res[i] = 0.0;
+		}
+	}
 	LeaveCriticalSection(&DCP_cs);
 }
 

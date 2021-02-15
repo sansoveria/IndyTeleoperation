@@ -251,7 +251,7 @@ void CMFCApplication1Dlg::OnBnClickedControlOn()
 
 	float torque1, torque2, torque3;
 	torque1 = 0.0;
-	torque2 = float(-0.1);
+	torque2 = float(-0.05);
 	torque3 = float(-0.0);
 
 	aOutput.tau1 = INT(torque1 * 1000);

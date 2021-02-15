@@ -23,6 +23,9 @@
     <ClCompile Include="CustomIndyDCPClient.cpp" />
     <ClCompile Include="NRMK_IndyDCPClient.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="99-2-ODE-teleoperation_Falcon.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>99-2-ODE-teleoperation_Falcon</ProjectName>
     <ProjectGuid>{3CE54783-90FC-440F-9815-A1A37EAD3BCE}</ProjectGuid>
@@ -41,7 +44,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>

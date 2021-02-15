@@ -1,8 +1,10 @@
 #pragma once
-
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-
+#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+	#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
+#ifndef _CRT_SECURE_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+#endif 
 #include "Demo_setup.h"
 
 #include <stdio.h>
@@ -327,11 +329,11 @@ public:
 	void StartDirectTeaching();
 	void StopDirectTeaching();
 	//// Info
-	double *GetJointPos();
-	double *GetTaskPos();
-	double *GetJointVel();
-	double *GetTaskVel();
-	double *GetTorque();
+	void GetJointPos(double * pos);
+	void GetTaskPos(double * pos);
+	void GetJointVel(double * vel);
+	void GetTaskVel(double * vel);
+	void GetTorque(double * torque);
 	int GetCMode();
 	//// Move
 	void MoveByJ(int numJoint, char dir, float dist);

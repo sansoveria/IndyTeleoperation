@@ -1,7 +1,11 @@
 #pragma once
 
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+	#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
+#ifndef _CRT_SECURE_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+#endif 
 
 #include "Demo_setup.h"
 
@@ -40,8 +44,9 @@ using namespace std;
 #define ROBOT_NAME "NRMK-IndyRP2"
 #endif
 
-
-#define SERVER_PORT 6067			//!!!edit
+#ifndef SERVER_PORT
+	#define SERVER_PORT 6067			//!!!edit
+#endif
 
 class CustomIndyDedicatedTCPTestClient //: public Poco::Runnable
 {
