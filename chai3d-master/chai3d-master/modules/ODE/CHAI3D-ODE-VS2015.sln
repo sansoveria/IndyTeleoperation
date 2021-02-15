@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30804.86
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.757
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CHAI3D", "..\..\CHAI3D-VS2015.vcxproj", "{A9F01342-5463-4634-B1F9-BF98CD5591B0}"
 EndProject
@@ -64,7 +64,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "98-ODE-POSCO_simulation", "
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "89-ODE-HRI", "examples\GLFW\89-ODE-HRI\89-ODE-HRI-VS2015.vcxproj", "{4DED42F1-9D2B-4D7A-82B9-EC3B39087AE0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "99-2-ODE-teleoperation_Falcon", "examples\GLFW\99-2-ODE-teleoperation_Falcon\99-2-ODE-teleoperation_Falcon-VS2015.vcxproj", "{3CE54783-90FC-440F-9815-A1A37EAD3BCE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "99-2-ODE-teleoperation_Falcon_agileEye", "examples\GLFW\99-2-ODE-teleoperation_Falcon_agileEye\99-2-ODE-teleoperation_Falcon_agileEye-VS2015.vcxproj", "{3CE54783-90FC-440F-9815-A1A37EAD3BCE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "99-3-ODE-teleoperation_Falcon", "examples\GLFW\99-3-ODE-teleoperation_Falcon\99-3-ODE-teleoperation_Falcon-VS2015.vcxproj", "{73828066-17DF-4DDA-9A82-B975123B9718}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -186,6 +188,14 @@ Global
 		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|Win32.Build.0 = Release|Win32
 		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x64.ActiveCfg = Release|x64
 		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x64.Build.0 = Release|x64
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Debug|Win32.ActiveCfg = Debug|Win32
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Debug|Win32.Build.0 = Debug|Win32
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Debug|x64.ActiveCfg = Debug|x64
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Debug|x64.Build.0 = Debug|x64
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Release|Win32.ActiveCfg = Release|Win32
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Release|Win32.Build.0 = Release|Win32
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Release|x64.ActiveCfg = Release|x64
+		{73828066-17DF-4DDA-9A82-B975123B9718}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

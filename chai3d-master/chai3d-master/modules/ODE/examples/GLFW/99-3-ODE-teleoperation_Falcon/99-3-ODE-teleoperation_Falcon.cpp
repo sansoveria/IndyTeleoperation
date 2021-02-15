@@ -1,4 +1,4 @@
-#include "99-2-ODE-teleoperation_Falcon.h"
+#include "99-3-ODE-teleoperation_Falcon.h"
 
 //===========================================================================
 /*
@@ -108,18 +108,11 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	handler->getDevice(Falcon, 0);
-	handler->getDevice(AgileEye, 1);
 
 	// start haptic device
 	if (!Falcon->open()) {
 		std::cout << "Failed to open Falcon. Quit process" << std::endl;
 		Falcon->close();
-		return 0;
-	}
-	if (!AgileEye->open()) {
-		std::cout << "Failed to open AgileEye. Quit process" << std::endl;
-		Falcon->close();
-		AgileEye->close();
 		return 0;
 	}
 
@@ -229,8 +222,6 @@ int main(int argc, char* argv[])
 	indyThread = new cThread();
 	indyThread->start(updateIndy, CTHREAD_PRIORITY_GRAPHICS);
 #endif
-	agileEyeThread = new cThread();
-	agileEyeThread->start(updateAgileEye, CTHREAD_PRIORITY_HAPTICS);
 	falconThread = new cThread();
 	falconThread->start(updateFalcon, CTHREAD_PRIORITY_HAPTICS);
 
@@ -285,7 +276,6 @@ void updateGraphics(void)
 		"[Graphic freq./Falcon freq./Agile eye freq./Indy freq./Control mode/Indy cmode] \r\n"
 		+ cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterFalcon.getFrequency(), 0) + " Hz / "
-		+ cStr(freqCounterAgileEye.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterIndy.getFrequency(), 0) + " Hz / "
 		+ strcurrentControlMode + " / "
 		+ cStr(indy_cmode)
@@ -407,14 +397,18 @@ void updateFalcon() {
 			//renderForce = linearStiffness * cVector3d(-posError(0), -posError(1), posError(2));
 			//renderForce += 1.0 * cVector3d(-sensorForce(0), -sensorForce(1), sensorForce(2));
 
+			// only force reflection
+			renderForce = 1.0 * cVector3d(-sensorForce(0), -sensorForce(1), sensorForce(2));
+
+
 			//if (renderForce.length() > 4.0) {
 			//	printf("Falcon saturated (force norm: %.5f)\n", renderForce.length());
 			//	renderForce = renderForce / renderForce.length() * 4.0;				
 			//}
 
-			rotMaster.transr(rotMasterTrans);
-			rotError = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotMasterTrans * rotSlave * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
-			rotErrorAxisAngle = axisAngle(rotError);
+			//rotMaster.transr(rotMasterTrans);
+			//rotError = cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotMasterTrans * rotSlave * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+			//rotErrorAxisAngle = axisAngle(rotError);
 			//renderTorque = rotationalStiffness * rotErrorAxisAngle;
 			//renderTorque += 0.1 * cVector3d(-sensorTorque(0), -sensorTorque(1), sensorTorque(2));
 
@@ -424,25 +418,6 @@ void updateFalcon() {
 			//}
 			
 			//printf("%.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", sensorForce(0), sensorForce(1), sensorForce(2), sensorTorque(0), sensorTorque(1), sensorTorque(2));
-			break;
-
-		case VELOCITY_MODE:	
-			linearStiffness = 1000.0;
-			rotationalStiffness = 0.0;
-			posError = posFalconRef - posFalcon;
-			renderForce = linearStiffness * posError;
-
-			if (renderForce.length() > 5.0) {
-				printf("Falcon saturated (force norm: %.5f)\n", renderForce.length());
-				renderForce = renderForce / renderForce.length() * 5.0;
-			}
-
-			renderTorque.set(0, 0, 0);
-			
-			if (posError.length() > 0.005) {
-				posOrigin += falconTimeStep * 10.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();
-				posMaster += falconTimeStep * 10.0 * (posError.length() - 0.01) * cVector3d(posError(0), posError(1), -posError(2)) / posError.length();				
-			}
 			break;
 
 		case IDLE_MODE:
@@ -463,51 +438,6 @@ void updateFalcon() {
 	falconThreadFinished = true;
 }
 
-void updateAgileEye() {
-	// teleoperation clock
-	cPrecisionClock agileEyeClock;
-	agileEyeClock.start(true);
-
-
-	int count = 0;
-	// main haptic teleoperation loop
-	while (teleoperationRunning)
-	{
-		// retrieve teleoperation time and compute next interval
-		double time = agileEyeClock.getCurrentTimeSeconds();
-		if (time < 0.002) {
-			continue;
-		}
-
-		// update frequency counter
-		freqCounterAgileEye.signal(1);
-
-		agileEyeClock.reset();
-		agileEyeClock.start();
-
-		// update position and orientation of tool
-		cMatrix3d rotAgileEye;
-		if (!AgileEye->getRotation(rotAgileEye)) {
-			glfwSetWindowShouldClose(window, GLFW_TRUE);
-		}
-		if (currentControlMode != IDLE_MODE) {
-			rotMaster = cMatrix3d(1, 0, 0, 0, 0, 1, 0, -1, 0)*cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotAgileEye * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
-		}
-		//rotMaster = rotAgileEye;
-
-		// attach cursor (show device position)
-		cursor->setLocalRot(rotMaster);
-		tool->setLocalRot(rotMaster * cMatrix3d(0, 0, -1, 0, 1, 0, 1, 0, 0));
-
-		AgileEye->setForceAndTorque(cVector3d(0.0, 0.0, 0.0), renderTorque);
-
-		count++;
-	}
-
-	// exit haptics thread
-	agileEyeThreadFinished = true;
-}
-
 void updateIndy() {
 	// teleoperation clock
 	cPrecisionClock indyClock;
@@ -519,6 +449,7 @@ void updateIndy() {
 	indyCommand.setParam(0.002, 5, cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
 
 	int indy_cmode_save = 0;
+	bool START_TELEOPERATION_MODE = false;
 
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
@@ -546,6 +477,7 @@ void updateIndy() {
 			if (indy_cmode != 20) {
 				indyTCP.ToggleTeleoperationMode();
 				printf("Teleoperation on\n");
+				START_TELEOPERATION_MODE = false;
 			}
 		}
 
@@ -601,6 +533,10 @@ void updateIndy() {
 
 		posSlave = posIndy;
 		rotSlave = rotIndy * cMatrix3d(0, 0, -1, 0, 1, 0, 1, 0, 0);
+		if (START_TELEOPERATION_MODE) {
+			rotMaster = rotSlave;
+			START_TELEOPERATION_MODE = true;
+		}
 
 		// attach cursor (show device position)
 		slave->setLocalPos(posSlave);
@@ -727,10 +663,6 @@ void close(void)
 		printf("Waiting for Falcon Thread\n");
 		cSleepMs(100); 
 	}
-	while (!agileEyeThreadFinished) {
-		printf("Waiting for AgileEye Thread\n");
-		cSleepMs(100); 
-	}
 #ifdef USE_INDY
 	while (!indyThreadFinished) { 
 		printf("Waiting for Indy Thread\n");
@@ -750,7 +682,6 @@ void close(void)
 
 	// delete resources
 	delete falconThread;
-	delete agileEyeThread;
 #ifdef USE_INDY
 	delete indyThread;
 #endif
