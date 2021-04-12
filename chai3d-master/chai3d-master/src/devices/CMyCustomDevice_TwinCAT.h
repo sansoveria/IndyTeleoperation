@@ -48,6 +48,9 @@
 #if defined(C_ENABLE_CUSTOM_DEVICE_SUPPORT)
 //------------------------------------------------------------------------------
 #include "devices/CGenericHapticDevice.h"
+
+#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsDef.h"
+#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsAPI.h"
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -185,9 +188,98 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
 protected:
+	// Variables for TwinCAT ADS communication
+	long						nErr;						// Error Message
+	long						nPort;						// Port number
+	AmsAddr						Addr;						// Target port information(PLC1)
 
-    //! A short description of my variable
-    int m_MyVariable;
+	//INT32		m_motor1_zero_position, m_motor2_zero_position;
+	//cMatrix3d	m_Jacobian;
+	
+#define	INDEX_GROUP		0x1010010
+//#define	MOTOR1_ENABLE	0x81000000
+//#define	MOTOR1_ANGLE	0x81000000
+//#define	MOTOR1_TORQUE	0x81000000
+//#define	MOTOR2_ENABLE	0x81000000
+//#define	MOTOR2_ANGLE	0x81000000
+//#define	MOTOR2_TORQUE	0x81000000
+//
+//#define	ENABLE_MOTOR	0x000F
+//#define	DISABLE_MOTOR	0x0006
+
+#pragma pack(push, 1)
+    struct ADS_INPUT {
+        // variable order and size are important!
+        // TC INT == SHORT
+        // TC DINT == LONG / INT
+        // TC BOOL == bool
+        INT u;
+        INT v;
+        INT w;
+        INT angle1;         // degree * 1000
+        INT angle2;         // degree * 1000
+        INT angleZero1;     // incremental ticks
+        INT angleZero2;     // incremental ticks
+        bool motorState1;
+        bool motorState2;
+        bool calibrationFlag;
+    };
+
+    struct ADS_OUTPUT {
+        // variable order and size are important!
+        // TC INT == SHORT
+        // TC DINT == LONG / INT
+        // TC BOOL == bool
+        INT tau1;           // Nm * 1000 (mNm)
+        INT tau2;           // Nm * 1000 (mNm)
+        INT tau3;           // Nm * 1000 (mNm)
+        bool enableMotor1;
+        bool enableMotor2;
+        bool calibrationFlag;
+    };
+#pragma pack(pop)
+
+    ADS_INPUT aInput;
+    ADS_OUTPUT aOutput;
+
+protected:
+
+	//void calcForwardKinematics(double angle1, double angle2, cMatrix3d& rot) {
+	//	// TODO: implement Forward Kinematics calculation
+	//	double ca, sa, c1, s1, c2, s2;
+	//	c1 = cos(angle1);
+	//	s1 = sin(angle1);
+	//	c2 = cos(angle2);
+	//	s2 = sin(angle2);
+	//	ca = c1 * c2 / sqrt(c1*c1*c2*c2 + s2 * s2);
+	//	sa = -s2 / sqrt(c1*c1*c2*c2 + s2 * s2);
+
+	//	double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+
+	//	r00 = ca*c1;		r01 = -sa*c1;		r02 = -s1;
+	//	r10 = sa;			r11 = ca;			r12 = 0.0;
+	//	r20 = ca * s1;		r21 = -sa * s1;		r22 = c1;
+
+	//	rot.set(r00, r01, r02, r10, r11, r12, r20, r21, r22);
+	//}
+
+	//void calcJacobian(double angle1, double angle2) {
+	//	// TODO: implement Jacobian calculation
+	//	double c1, s1, c2, s2, A;
+	//	c1 = cos(angle1);
+	//	s1 = sin(angle1);
+	//	c2 = cos(angle2);
+	//	s2 = sin(angle2);
+	//	A = c1 * c1*c2*c2 + s2 * s2;
+
+	//	double j00, j01, j02, j10, j11, j12, j20, j21, j22;
+
+	//	j00 = -s2/sqrt(A);		j01 = 0.0;		j02 = 0.0;
+	//	j10 = -c1*c2/sqrt(A);	j11 = 0.0;		j12 = 0.0;
+	//	j20 = s1*c2*s2/A;		j21 = c1/A;		j22 = 0.0;
+
+	//	m_Jacobian.set(j00, j01, j02, j10, j11, j12, j20, j21, j22);
+	//}
 };
 
 //------------------------------------------------------------------------------

@@ -42,12 +42,15 @@
 //==============================================================================
 
 //------------------------------------------------------------------------------
-#ifndef CMyCustomDeviceH
-#define CMyCustomDeviceH
-//------------------------------------------------------------------------------
-#if defined(C_ENABLE_CUSTOM_DEVICE_SUPPORT)
+#ifndef CAgileEyeDeviceDeviceH
+#define CAgileEyeDeviceDeviceH
 //------------------------------------------------------------------------------
 #include "devices/CGenericHapticDevice.h"
+//------------------------------------------------------------------------------
+#if defined(USE_AGILE_EYE)
+#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsDef.h"
+#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsAPI.h"
+#endif
 //------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
@@ -64,8 +67,8 @@ namespace chai3d {
 //==============================================================================
 
 //------------------------------------------------------------------------------
-class cMyCustomDevice;
-typedef std::shared_ptr<cMyCustomDevice> cMyCustomDevicePtr;
+class cAgileEyeDevice;
+typedef std::shared_ptr<cAgileEyeDevice> cAgileEyeDevicePtr;
 //------------------------------------------------------------------------------
 
 //==============================================================================
@@ -112,7 +115,7 @@ typedef std::shared_ptr<cMyCustomDevice> cMyCustomDevicePtr;
     instance.\n
 */
 //==============================================================================
-class cMyCustomDevice : public cGenericHapticDevice
+class cAgileEyeDevice : public cGenericHapticDevice
 {
     //--------------------------------------------------------------------------
     // CONSTRUCTOR & DESTRUCTOR:
@@ -121,13 +124,15 @@ class cMyCustomDevice : public cGenericHapticDevice
 public:
 
     //! Constructor of cMyCustomDevice.
-    cMyCustomDevice(unsigned int a_deviceNumber = 0);
+    cAgileEyeDevice
+    (unsigned int a_deviceNumber = 0);
 
     //! Destructor of cMyCustomDevice.
-    virtual ~cMyCustomDevice();
+    virtual ~cAgileEyeDevice
+    ();
 
     //! Shared cMyCustomDevice allocator.
-    static cMyCustomDevicePtr create(unsigned int a_deviceNumber = 0) { return (std::make_shared<cMyCustomDevice>(a_deviceNumber)); }
+    static cAgileEyeDevicePtr create(unsigned int a_deviceNumber = 0) { return (std::make_shared<cAgileEyeDevice>(a_deviceNumber)); }
 
 
     //--------------------------------------------------------------------------
@@ -185,15 +190,66 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
 protected:
+#if defined(USE_AGILE_EYE)
+	// Variables for TwinCAT ADS communication
+	long						nErr;						// Error Message
+	long						nPort;						// Port number
+	AmsAddr						Addr;						// Target port information(PLC1)
 
-    //! A short description of my variable
-    int m_MyVariable;
+	//INT32		m_motor1_zero_position, m_motor2_zero_position;
+	//cMatrix3d	m_Jacobian;
+	
+#define	INDEX_GROUP		0x1010010
+//#define	MOTOR1_ENABLE	0x81000000
+//#define	MOTOR1_ANGLE	0x81000000
+//#define	MOTOR1_TORQUE	0x81000000
+//#define	MOTOR2_ENABLE	0x81000000
+//#define	MOTOR2_ANGLE	0x81000000
+//#define	MOTOR2_TORQUE	0x81000000
+//
+//#define	ENABLE_MOTOR	0x000F
+//#define	DISABLE_MOTOR	0x0006
+
+#pragma pack(push, 1)
+    struct ADS_INPUT {
+        // variable order and size are important!
+        // TC INT == SHORT
+        // TC DINT == LONG / INT
+        // TC BOOL == bool
+        INT u;
+        INT v;
+        INT w;
+        INT angle1;         // degree * 1000
+        INT angle2;         // degree * 1000
+        INT angleZero1;     // incremental ticks
+        INT angleZero2;     // incremental ticks
+        bool motorState1;
+        bool motorState2;
+        bool calibrationFlag;
+    };
+
+    struct ADS_OUTPUT {
+        // variable order and size are important!
+        // TC INT == SHORT
+        // TC DINT == LONG / INT
+        // TC BOOL == bool
+        INT tau1;           // Nm * 1000 (mNm)
+        INT tau2;           // Nm * 1000 (mNm)
+        INT tau3;           // Nm * 1000 (mNm)
+        bool enableMotor1;
+        bool enableMotor2;
+        bool calibrationFlag;
+    };
+#pragma pack(pop)
+
+    ADS_INPUT aInput;
+    ADS_OUTPUT aOutput;
+
+#endif
 };
 
 //------------------------------------------------------------------------------
 }       // namespace chai3d
-//------------------------------------------------------------------------------
-#endif  // C_ENABLE_CUSTOM_DEVICE_SUPPORT
 //------------------------------------------------------------------------------
 #endif
 //------------------------------------------------------------------------------
