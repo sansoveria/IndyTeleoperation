@@ -7,19 +7,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NRMK_IndyDCPClient.cpp">
+    <ClInclude Include="99-4-ODE-teleoperation_Phantom.h" />
+    <ClInclude Include="NRMK_IndyDCPClient.h" />
+    <ClInclude Include="CustomIndyDCPClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="99-4-ODE-teleoperation_Phantom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CustomIndyDCPClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="99-2-ODE-teleoperation_Falcon_agileEye.cpp">
+    <ClCompile Include="NRMK_IndyDCPClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="99-2-ODE-teleoperation_Falcon_agileEye.h" />
-    <ClInclude Include="CustomIndyDCPClient.h" />
-    <ClInclude Include="NRMK_IndyDCPClient.h" />
   </ItemGroup>
 </Project>

@@ -54,7 +54,7 @@ cSpotLight* light;
 cHapticDeviceHandler* handler;
 
 // a pointer to the current haptic device
-shared_ptr<cGenericHapticDevice> Falcon;
+shared_ptr<cGenericHapticDevice> Phantom;
 shared_ptr<cGenericHapticDevice> AgileEye;
 
 // workspace scale factor
@@ -63,25 +63,29 @@ double workspaceScaleFactor = 10.0;
 // Device state variables
 cVector3d posMaster, posSlave;
 cVector3d velMaster;
-cVector3d posOrigin, posFalconRef;
+cVector3d posOrigin, posPhantomRef;
 cMatrix3d rotMaster, rotSlave;
 cVector3d sensorForce, sensorTorque, renderForce, renderTorque;
 double damping_coeff = 0.0;
 double masterPosePrev[6] = { 0.0 };
 int currentControlMode = IDLE_MODE;
-bool controlModeSwitch = true;
+bool controlModeSwitch = false;
 //bool isButton1Clicked = false;
 //bool isButton2Clicked = false;
 bool isButtonClicked = false;
+bool isTeleoperationReady = false;
+bool isFirstTeleoperationStep = true;
 
 cMesh* cursor = new cMesh();
 cMesh* tool = new cMesh();
 cMesh* originWorld = new cMesh();
-cMesh* originFalcon = new cMesh();
+cMesh* originPhantom = new cMesh();
 cMesh* slave = new cMesh();
 cMesh* ground = new cMesh();
 double toolLength = 0.5;
 double toolRadius = 0.01;
+
+cMaterial mat_tool, mat_tool_ready, mat_ground, mat_slave;
 
 //------------------------------------------------------------------------------
 // INDY SETTINGS
@@ -102,18 +106,18 @@ double alpha = 0.0;
 bool teleoperationRunning = false;
 
 // flag to indicate if the haptic teleoperation has terminated
-bool falconThreadFinished = false;
+bool phantomThreadFinished = false;
 bool indyThreadFinished = false;
 
 // a frequency counter to measure the teleoperation haptic rate
 cFrequencyCounter freqCounterGraphics;
-cFrequencyCounter freqCounterFalcon;
+cFrequencyCounter freqCounterPhantom;
 cFrequencyCounter freqCounterIndy;
 
 cLabel* labelRates;
 
 // threads
-cThread* falconThread;
+cThread* phantomThread;
 cThread* indyThread;
 
 // a handle to window display context
@@ -133,7 +137,7 @@ void errorCallback(int error, const char* a_description);
 void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, int a_mods);
 
 void updateGraphics(void);
-void updateFalcon(void);
+void updatePhantom(void);
 void updateIndy(void);
 
 void close(void);

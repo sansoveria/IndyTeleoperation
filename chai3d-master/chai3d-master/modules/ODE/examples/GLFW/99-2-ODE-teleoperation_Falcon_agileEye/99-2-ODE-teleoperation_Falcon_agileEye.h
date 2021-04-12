@@ -58,7 +58,7 @@ shared_ptr<cGenericHapticDevice> Falcon;
 shared_ptr<cGenericHapticDevice> AgileEye;
 
 // workspace scale factor
-double workspaceScaleFactor = 10.0;
+double workspaceScaleFactor = 5.0;
 
 // Device state variables
 cVector3d posMaster, posSlave;
@@ -67,10 +67,12 @@ cMatrix3d rotMaster, rotSlave;
 cVector3d sensorForce, sensorTorque, renderForce, renderTorque;
 double masterPosePrev[6] = { 0.0 };
 int currentControlMode = IDLE_MODE;
-bool controlModeSwitch = true;
+bool controlModeSwitch = false;
 //bool isButton1Clicked = false;
 //bool isButton2Clicked = false;
 bool isButtonClicked = false;
+bool isTeleoperationReady = false;
+bool isFirstTeleoperationStep = true;
 
 cMesh* cursor = new cMesh();
 cMesh* tool = new cMesh();
@@ -81,16 +83,21 @@ cMesh* ground = new cMesh();
 double toolLength = 0.5;
 double toolRadius = 0.01;
 
+cMaterial mat_tool, mat_tool_ready, mat_ground, mat_slave;
+
 //------------------------------------------------------------------------------
 // INDY SETTINGS
 //------------------------------------------------------------------------------
 #define USE_INDY
-float defaultPose[6] = { 0.0f, -30.0f, -105.0f, 0.0f, 45.0f, -90.0f };
+float defaultPose[6] = { 0.0f, -60.0f, -130.0f, 0.0f, 100.0f, -90.0f };
+//float defaultPose[6] = { 0.0f, -45.0f, -130.0f, 0.0f, 90.0f, -90.0f };
+//float defaultPose[6] = { 0.0f, -15.0f, -90.0f, 0.0f, -75.0f, 0.0f };
 
 IndyDedicatedTCPTestClient indyTCP;
 CustomIndyDedicatedTCPTestClient customTCP;
 int indy_cmode = 0;
 double alpha = 0.0;
+double damping = 0.0;
 
 //---------------------------------------------------------------------------
 // GENERAL VARIABLES

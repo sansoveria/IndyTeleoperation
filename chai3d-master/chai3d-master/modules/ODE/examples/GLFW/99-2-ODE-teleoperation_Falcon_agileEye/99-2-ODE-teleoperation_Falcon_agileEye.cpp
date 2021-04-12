@@ -110,6 +110,25 @@ int main(int argc, char* argv[])
 	handler->getDevice(Falcon, 0);
 	handler->getDevice(AgileEye, 1);
 
+	if (Falcon->m_specifications.m_model == C_HAPTIC_DEVICE_FALCON){
+		std::cout << "Falcon found" << std::endl;
+	}
+	else {
+		std::cout << "Device is not Falcon. Quit process" << std::endl;
+		Falcon->close();
+		return 0;
+	}
+
+	if (AgileEye->m_specifications.m_model == C_HAPTIC_DEVICE_CUSTOM) {
+		std::cout << "AgileEye found" << std::endl;
+	}
+	else {
+		std::cout << "Device is not Falcon. Quit process" << std::endl;
+		AgileEye->close();
+		return 0;
+	}
+
+
 	// start haptic device
 	if (!Falcon->open()) {
 		std::cout << "Failed to open Falcon. Quit process" << std::endl;
@@ -207,8 +226,8 @@ int main(int argc, char* argv[])
 	world->addChild(slave);
 	slave->setShowFrame(true);
 
-	cMaterial mat_tool, mat_ground, mat_slave;
 	mat_tool.setRedCrimson();
+	mat_tool_ready.setGreenPale();
 	mat_ground.setWhite();
 	mat_slave.setBlueAqua();
 
@@ -490,9 +509,9 @@ void updateAgileEye() {
 		if (!AgileEye->getRotation(rotAgileEye)) {
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
 		}
-		if (currentControlMode != IDLE_MODE) {
+		//if (currentControlMode != IDLE_MODE) {
 			rotMaster = cMatrix3d(1, 0, 0, 0, 0, 1, 0, -1, 0)*cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1) * rotAgileEye * cMatrix3d(-1, 0, 0, 0, -1, 0, 0, 0, 1);
-		}
+		//}
 		//rotMaster = rotAgileEye;
 
 		// attach cursor (show device position)
@@ -518,7 +537,6 @@ void updateIndy() {
 	cIndyTransform indyCommand;
 	indyCommand.setParam(0.002, 5, cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
 
-	int indy_cmode_save = 0;
 
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
@@ -549,6 +567,28 @@ void updateIndy() {
 			}
 		}
 
+		// Check system is ready to start teleoperation
+		if (currentControlMode == POSITION_MODE && indy_cmode == 20) {
+			if (!isTeleoperationReady) {
+				// rotation should be close enough to start teleoperation
+				cVector3d rotErrorAxisAngle;
+				cMatrix3d rotMasterTrans;
+				double rotError;
+				rotMaster.transr(rotMasterTrans);
+				rotErrorAxisAngle = axisAngle(rotMasterTrans * rotSlave);
+				rotError = rotErrorAxisAngle.length();
+				//safety_angle_set
+				if (rotError / M_PI * 180.0 < 10.0) {
+					isTeleoperationReady = true;
+					tool->setMaterial(mat_tool_ready);
+				}
+			}
+		}
+		else {
+			tool->setMaterial(mat_tool);
+			isTeleoperationReady = false;
+			isFirstTeleoperationStep = true;
+		}
 
 		// update position and orientation of Indy
 		cVector3d posIndy;
@@ -558,9 +598,11 @@ void updateIndy() {
 		cMatrix3d masterRotMat;
 		int cmode;
 		cVector3d masterRot; 
-		if (currentControlMode == POSITION_MODE&& indy_cmode == 20) {
-			if (indy_cmode_save != 20)
+		if (isTeleoperationReady) {
+			if (isFirstTeleoperationStep) {
 				indyCommand.updateCommand(posMaster, rotMaster, dT, true);
+				isFirstTeleoperationStep = false;
+			}
 			else {
 				indyCommand.updateCommand(posMaster, rotMaster, dT, false);
 			}
@@ -576,7 +618,7 @@ void updateIndy() {
 		}
 			
 		cmode = 0;
-		customTCP.SendIndyCommandAndReadState(masterPose, masterVel, passivityPort, indyPose, indyForceTorque, cmode);
+		customTCP.SendIndyCommandAndReadState(masterPose, masterVel, passivityPort, indyPose, indyForceTorque, cmode, damping);
 
 		double axis1, axis2, axis3, angle;
 		posIndy(0) = indyPose[0];
@@ -595,8 +637,7 @@ void updateIndy() {
 
 		sensorForce.set(indyForceTorque[0], indyForceTorque[1], indyForceTorque[2]);
 		sensorTorque.set(indyForceTorque[3], indyForceTorque[4], indyForceTorque[5]);
-
-		indy_cmode_save = indy_cmode;
+		
 		indy_cmode = cmode;
 
 		posSlave = posIndy;

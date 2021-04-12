@@ -61,7 +61,7 @@ public:
 
 	enum {
 		SIZE_USER_INPUT = 57,
-		SIZE_INDY_STATE = 57,
+		SIZE_INDY_STATE = 61,
 	};
 
 #pragma pack(push)  /* push current alignment to stack */
@@ -80,6 +80,7 @@ public:
 		int force[3];								// force value in mN (12 byte)
 		int torque[3];								// torque value in mNm (12 byte)
 		int cmode;									// Indy cmode (4 byte)
+		int damping;								// user feedback damping coefficient (4 byte)
 		unsigned char sof;							// source of Frame (1 byte)
 	};
 #pragma pack(pop)   /* restore original alignment from stack */
@@ -138,6 +139,6 @@ public:
 
 	////// Cmd Transmittion
 	bool Run();
-	void SendIndyCommandAndReadState(double * masterPos, double * masterVel, double passivityPort, double * indyPos, double * forceTorque, int& cmode);
+	void SendIndyCommandAndReadState(double * masterPos, double * masterVel, double passivityPort, double * indyPos, double * forceTorque, int& cmode, double& damping);
 
 }; /* end of class */

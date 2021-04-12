@@ -1,4 +1,4 @@
-#include "99-3-ODE-teleoperation_Falcon.h"
+#include "99-4-ODE-teleoperation_Phantom.h"
 
 //===========================================================================
 /*
@@ -107,12 +107,23 @@ int main(int argc, char* argv[])
 		std::cout << "[HapticDeviceHandler] Detected device number is not matched. Quit process. (numDevice: " << numDevice << ")" << endl;
 		return 0;
 	}
-	handler->getDevice(Falcon, 0);
+	handler->getDevice(Phantom, 0);
+
+	if (Phantom->m_specifications.m_model == C_HAPTIC_DEVICE_PHANTOM_TOUCH ||
+		Phantom->m_specifications.m_model == C_HAPTIC_DEVICE_PHANTOM_OMNI ||
+		Phantom->m_specifications.m_model == C_HAPTIC_DEVICE_PHANTOM_DESKTOP) {
+		std::cout << "Phantom found" << std::endl;
+	}
+	else {
+		std::cout << "Device is not Phantom. Quit process" << std::endl;
+		Phantom->close();
+		return 0;
+	}
 
 	// start haptic device
-	if (!Falcon->open()) {
-		std::cout << "Failed to open Falcon. Quit process" << std::endl;
-		Falcon->close();
+	if (!Phantom->open()) {
+		std::cout << "Failed to open Phantom. Quit process" << std::endl;
+		Phantom->close();
 		return 0;
 	}
 
@@ -175,11 +186,11 @@ int main(int argc, char* argv[])
 	world->addChild(originWorld);
 	originWorld->setShowFrame(true);
 
-	// falcon origin
-	cCreateBox(originFalcon, 0.01, 0.01, 0.01);
-	world->addChild(originFalcon);
-	//originFalcon->setShowFrame(true);
-	originFalcon->setLocalPos(posOrigin);
+	// Phantom origin
+	cCreateBox(originPhantom, 0.01, 0.01, 0.01);
+	world->addChild(originPhantom);
+	//originPhantom->setShowFrame(true);
+	originPhantom->setLocalPos(posOrigin);
 
 	// ground
 	cCreatePlane(ground, 3.0, 3.0);
@@ -187,12 +198,12 @@ int main(int argc, char* argv[])
 	ground->setShowFrame(true);
 
 	// master cursor
-	cCreateBox(cursor, 0.1, 0.1, 0.1);
+	cCreateBox(cursor, 0.01, 0.01, 0.01);
 	world->addChild(cursor);
 	cursor->setShowFrame(true);
 
-	//cCreateCylinder(tool, toolLength, toolRadius);
-	//world->addChild(tool);
+	cCreateCylinder(tool, toolLength, toolRadius);
+	world->addChild(tool);
 	//device->setShowFrame(true);
 
 	// slave
@@ -200,20 +211,20 @@ int main(int argc, char* argv[])
 	world->addChild(slave);
 	slave->setShowFrame(true);
 
-	cMaterial mat_tool, mat_ground, mat_slave;
 	mat_tool.setRedCrimson();
+	mat_tool_ready.setGreenPale();
 	mat_ground.setWhite();
 	mat_slave.setBlueAqua();
 
-	//tool->setMaterial(mat_tool);
+	tool->setMaterial(mat_tool);
 	cursor->setMaterial(mat_tool);
 	originWorld->setMaterial(mat_tool);
-	originFalcon->setMaterial(mat_tool);
+	originPhantom->setMaterial(mat_tool);
 	slave->setMaterial(mat_slave);
 	ground->setMaterial(mat_ground);
 
 	//-----------------------------------------------------------------------
-	// START Device Communication (Falcon, Indy)
+	// START Device Communication (Phantom, Indy)
 	//-----------------------------------------------------------------------
 
 	// create a thread which starts the main haptics rendering loop and teleoperation loop
@@ -222,8 +233,8 @@ int main(int argc, char* argv[])
 	indyThread = new cThread();
 	indyThread->start(updateIndy, CTHREAD_PRIORITY_GRAPHICS);
 #endif
-	falconThread = new cThread();
-	falconThread->start(updateFalcon, CTHREAD_PRIORITY_HAPTICS);
+	phantomThread = new cThread();
+	phantomThread->start(updatePhantom, CTHREAD_PRIORITY_HAPTICS);
 
 	// reset system
 #ifdef USE_INDY
@@ -273,9 +284,9 @@ void updateGraphics(void)
 	else strcurrentControlMode = "Position Mode";
 
 	labelRates->setText(
-		"[Graphic freq./Falcon freq./Agile eye freq./Indy freq./Control mode/Indy cmode] \r\n"
+		"[Graphic freq./Phantom freq./Agile eye freq./Indy freq./Control mode/Indy cmode] \r\n"
 		+ cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / "
-		+ cStr(freqCounterFalcon.getFrequency(), 0) + " Hz / "
+		+ cStr(freqCounterPhantom.getFrequency(), 0) + " Hz / "
 		+ cStr(freqCounterIndy.getFrequency(), 0) + " Hz / "
 		+ strcurrentControlMode + " / "
 		+ cStr(indy_cmode)
@@ -304,41 +315,42 @@ void updateGraphics(void)
 
 //---------------------------------------------------------------------------
 
-void updateFalcon() {
+void updatePhantom() {
 	// teleoperation clock
-	cPrecisionClock falconClock;
-	falconClock.start(true);
+	cPrecisionClock phantomClock;
+	phantomClock.start(true);
 
 
 	int count = 0;
-	double falconTimeStep = 0.002;
+	double phantomTimeStep = 0.002;
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
 	{
 		// retrieve teleoperation time and compute next interval
-		double time = falconClock.getCurrentTimeSeconds();
-		if (time < falconTimeStep) {
+		double time = phantomClock.getCurrentTimeSeconds();
+		if (time < phantomTimeStep) {
 			continue;
 		}
 
 		// update frequency counter
-		freqCounterFalcon.signal(1);
+		freqCounterPhantom.signal(1);
 
-		falconClock.reset();
-		falconClock.start();
+		phantomClock.reset();
+		phantomClock.start();
 
 		// update position and orientation of tool
-		cVector3d posFalcon;
-		Falcon->getPosition(posFalcon);
+		cVector3d posPhantom;
+		cMatrix3d rotPhantom;
+		Phantom->getPosition(posPhantom);
+		Phantom->getRotation(rotPhantom);
+		// JSHTODO: convert rotation matrix and save it to rotMaster
 
 		// button handling
+		// JSHTODO: get proper button number
 		bool button1, button2;
-		Falcon->getUserSwitch(1, button1);
-		Falcon->getUserSwitch(3, button2);
+		Phantom->getUserSwitch(1, button1);
+		Phantom->getUserSwitch(3, button2);
 
-		//if (button1) printf("button 1 on \n");
-		//if (button2) printf("button 2 on \n");
-		//if (isButton1Clicked || isButton2Clicked) {
 		if (isButtonClicked){
 			if (controlModeSwitch) {
 				if (!button1) {
@@ -365,16 +377,16 @@ void updateFalcon() {
 					printf("Velocity mode started\n");
 					isButtonClicked = true;
 					currentControlMode = VELOCITY_MODE;
-					// set reference falcon position 
-					posFalconRef = posFalcon;
+					// set reference phantom position 
+					posPhantomRef = posPhantom;
 				}
 				else {
 					printf("Position mode started\n");
 					isButtonClicked = true;
 					currentControlMode = POSITION_MODE;
-					// set falcon origin position so that current master position becomes slave position
-					posFalconRef = posFalcon;
-					posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
+					// set phantom origin position so that current master position becomes slave position
+					posPhantomRef = posPhantom;
+					posOrigin = posSlave - workspaceScaleFactor * cVector3d(-posPhantom(0), -posPhantom(1), posPhantom(2));
 					posMaster = posSlave;
 				}
 			}
@@ -389,7 +401,7 @@ void updateFalcon() {
 		double linearStiffness;
 		switch (currentControlMode) {
 		case POSITION_MODE:
-			posMaster = posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2));
+			posMaster = posOrigin + workspaceScaleFactor * cVector3d(-posPhantom(0), -posPhantom(1), posPhantom(2));
 
 			linearStiffness = 100.0;
 			posError = posSlave - posMaster;
@@ -419,17 +431,17 @@ void updateFalcon() {
 			break;
 		}
 
-		cursor->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2)));			// for axis check
-		//tool->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posFalcon(0), -posFalcon(1), posFalcon(2)));
-		originFalcon->setLocalPos(posOrigin);
+		cursor->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posPhantom(0), -posPhantom(1), posPhantom(2)));			// for axis check
+		//tool->setLocalPos(posOrigin + workspaceScaleFactor * cVector3d(-posPhantom(0), -posPhantom(1), posPhantom(2)));
+		originPhantom->setLocalPos(posOrigin);
 
-		Falcon->setForce(renderForce + cVector3d(0.0, 0.0, 0.0));
+		Phantom->setForce(renderForce + cVector3d(0.0, 0.0, 0.0));
 
 		count++;
 	}
 
 	// exit haptics thread
-	falconThreadFinished = true;
+	phantomThreadFinished = true;
 }
 
 void updateIndy() {
@@ -442,8 +454,6 @@ void updateIndy() {
 	cIndyTransform indyCommand;
 	indyCommand.setParam(0.002, 5, cMatrix3d(0, 0, 1, 0, 1, 0, -1, 0, 0));
 
-	int indy_cmode_save = 0;
-	bool START_TELEOPERATION_MODE = true;
 
 	// main haptic teleoperation loop
 	while (teleoperationRunning)
@@ -471,10 +481,30 @@ void updateIndy() {
 			if (indy_cmode != 20) {
 				indyTCP.ToggleTeleoperationMode();
 				printf("Teleoperation on\n");
-				START_TELEOPERATION_MODE = true;
 			}
 		}
 
+		// Check system is ready to start teleoperation
+		if (currentControlMode == POSITION_MODE && indy_cmode == 20) {
+			if (!isTeleoperationReady) {
+				// rotation should be close enough to start teleoperation
+				cVector3d rotErrorAxisAngle;
+				cMatrix3d rotMasterTrans;
+				double rotError;
+				rotMaster.transr(rotMasterTrans);
+				rotErrorAxisAngle = axisAngle(rotMasterTrans * rotSlave);
+				rotError = rotErrorAxisAngle.length();
+				if (rotError / M_PI * 180.0 < 5.0) {
+					isTeleoperationReady = true;
+					tool->setMaterial(mat_tool_ready);
+				}
+			}
+		}
+		else {
+			tool->setMaterial(mat_tool);
+			isTeleoperationReady = false;
+			isFirstTeleoperationStep = true;
+		}
 
 		// update position and orientation of Indy
 		cVector3d posIndy;
@@ -483,18 +513,17 @@ void updateIndy() {
 		double passivityPort = 0.0;
 		cMatrix3d masterRotMat;
 		int cmode;
-		cVector3d masterRot; 
-		if (currentControlMode == POSITION_MODE && indy_cmode == 20) {
-			if (indy_cmode_save != 20)
+		cVector3d masterRot;
+		if (isTeleoperationReady) {
+			if (isFirstTeleoperationStep) {
 				indyCommand.updateCommand(posMaster, rotMaster, dT, true);
+				isFirstTeleoperationStep = false;
+			}
 			else {
 				indyCommand.updateCommand(posMaster, rotMaster, dT, false);
 			}
 			indyCommand.getPoseCommand(masterPose);
 			indyCommand.getVelocityCommand(masterVel);
-			velMaster(0) = masterVel[0];
-			velMaster(1) = masterVel[1];
-			velMaster(2) = masterVel[2];
 			//printf("[pos] %.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f \n", masterPose[0], masterPose[1], masterPose[2], masterPose[3], masterPose[4], masterPose[5]);
 			//printf("[vel] %.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f \n", masterVel[0], masterVel[1], masterVel[2], masterVel[3], masterVel[4], masterVel[5]);
 		}
@@ -503,9 +532,9 @@ void updateIndy() {
 			indyCommand.getPoseCommand(masterPose);
 			indyCommand.getVelocityCommand(masterVel);
 		}
-			
+
 		cmode = 0;
-		customTCP.SendIndyCommandAndReadState(masterPose, masterVel, passivityPort, indyPose, indyForceTorque, cmode, damping_coeff);
+		customTCP.SendIndyCommandAndReadState(masterPose, masterVel, passivityPort, indyPose, indyForceTorque, cmode, damping);
 
 		double axis1, axis2, axis3, angle;
 		posIndy(0) = indyPose[0];
@@ -525,15 +554,10 @@ void updateIndy() {
 		sensorForce.set(indyForceTorque[0], indyForceTorque[1], indyForceTorque[2]);
 		sensorTorque.set(indyForceTorque[3], indyForceTorque[4], indyForceTorque[5]);
 
-		indy_cmode_save = indy_cmode;
 		indy_cmode = cmode;
 
 		posSlave = posIndy;
 		rotSlave = rotIndy * cMatrix3d(0, 0, -1, 0, 1, 0, 1, 0, 0);
-		if (START_TELEOPERATION_MODE) {
-			rotMaster = rotSlave;
-			START_TELEOPERATION_MODE = false;
-		}
 
 		// attach cursor (show device position)
 		slave->setLocalPos(posSlave);
@@ -670,8 +694,8 @@ void close(void)
 	teleoperationRunning = false;
 
 	// wait for graphics and haptics loops to terminate
-	while (!falconThreadFinished) {
-		printf("Waiting for Falcon Thread\n");
+	while (!phantomThreadFinished) {
+		printf("Waiting for Phantom Thread\n");
 		cSleepMs(100); 
 	}
 #ifdef USE_INDY
@@ -682,7 +706,7 @@ void close(void)
 #endif
 
 	// close haptic device
-	Falcon->close();
+	Phantom->close();
 
 	// disconnect Indy DCP, TCP communication
 #ifdef USE_INDY
@@ -691,7 +715,7 @@ void close(void)
 #endif
 
 	// delete resources
-	delete falconThread;
+	delete phantomThread;
 #ifdef USE_INDY
 	delete indyThread;
 #endif
