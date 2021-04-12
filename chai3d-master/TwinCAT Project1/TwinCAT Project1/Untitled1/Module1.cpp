@@ -200,8 +200,8 @@ HRESULT CModule1::CycleUpdate(ITcTask* ipTask, ITcUnknown* ipCaller, ULONG_PTR c
 		double theta1, theta2;
 		double c1, s1, c2, s2, a, ca, sa;
 		double angle, axis1, axis2, axis3;
-		theta1 = -double(m_Inputs.Position1 - m_DeviceStates.AngleZero1) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
-		theta2 = -double(m_Inputs.Position2 - m_DeviceStates.AngleZero2) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO;
+		theta1 = -double(m_Inputs.Position1 - m_DeviceStates.AngleZero1) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO_1;
+		theta2 = -double(m_Inputs.Position2 - m_DeviceStates.AngleZero2) * 2.0 * TC_M_PI / 4096.0 / GEAR_RATIO_2;
 		m_DeviceStates.Angle1 = LONG(theta1 / TC_M_PI * 180.0 * 1000.0);		// degree
 		m_DeviceStates.Angle2 = LONG(theta2 / TC_M_PI * 180.0 * 1000.0);		// degree
 		c1 = cos_(theta1);
@@ -273,10 +273,10 @@ HRESULT CModule1::CycleUpdate(ITcTask* ipTask, ITcUnknown* ipCaller, ULONG_PTR c
 			//m_DeviceStates.Angle2 = LONG(torque2 / NOMINAL_TORQUE * 1000.0);
 			targetTorque1 = LONG(torque1 / NOMINAL_TORQUE * 1000.0);
 			targetTorque2 = LONG(-torque2 / NOMINAL_TORQUE * 1000.0);
-			if (targetTorque1 > 1000) targetTorque1 = 1000;
-			if (targetTorque1 < -1000) targetTorque1 = -1000;
-			if (targetTorque2 > 1000) targetTorque2 = 1000;
-			if (targetTorque2 < -1000) targetTorque2 = -1000;
+			if (targetTorque1 > 100) targetTorque1 = 100;
+			if (targetTorque1 < -100) targetTorque1 = -100;
+			if (targetTorque2 > 100) targetTorque2 = 100;
+			if (targetTorque2 < -100) targetTorque2 = -100;
 
 			m_Outputs.TargetTorque1 = targetTorque1;
 			m_Outputs.TargetTorque2 = targetTorque2;

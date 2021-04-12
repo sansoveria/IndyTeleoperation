@@ -43,14 +43,15 @@
 
 
 //------------------------------------------------------------------------------
-#include "system/CGlobals.h"
+#include "definitions.h"
 #include "CAgileEyeDevice.h"
 
+
 #if defined(USE_AGILE_EYE) {
-#ifdef _DEBUG
-#   pragma comment( lib, "dir1/dir2/mylibd.lib" )
+#ifdef WIN64
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/x64/lib/TcAdsDll.lib" )
 #else
-#   pragma comment( lib, "dir1/dir2/mylib.lib" )
+#   pragma comment( lib, "C:\TwinCAT\AdsApi\TcAdsDll\Lib\TcAdsDll.lib" )
 #endif
 #endif
 
@@ -128,6 +129,8 @@ cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
     if (nErr != 0) {
         printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
     }
+#else
+    m_deviceAvailable = C_SUCCESS;
 #endif
 }
 
@@ -144,6 +147,15 @@ cAgileEyeDevice::~cAgileEyeDevice()
     {
         close();
     }
+#if defined(USE_AGILE_EYE)
+    nErr = AdsPortClose();
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: ADS Port Close Error: %d\n", nErr);
+    }
+    else {
+        printf("[AGILE_EYE] ADS Port Closed \n");
+    }
+#endif
 }
 
 
@@ -157,24 +169,48 @@ cAgileEyeDevice::~cAgileEyeDevice()
 bool cAgileEyeDevice::open(){
 
     // check if the system is available
-    if (!m_deviceAvailable) return (C_ERROR);
+    if (!m_deviceAvailable) {
+        printf("[AgileEye-open] Device is not available\n");
+        return (C_ERROR);
+    }
 
     // if system is already opened then return
-    if (m_deviceReady) return (C_ERROR);
+    if (m_deviceReady) {
+        printf("[AgileEye-open] Device is already opened\n");
+        return (C_ERROR);
+    }
 
   
 #if defined(USE_AGILE_EYE)
+    // reset ADS communication variable
+    aInput.angle1 = 0;
+    aInput.angle2 = 0;
+    aInput.angleZero1 = 0;
+    aInput.angleZero2 = 0;
+    aInput.calibrationFlag = false;
+    aInput.motorState1 = false;
+    aInput.motorState2 = false;
+    aInput.u = 0;
+    aInput.v = 0;
+    aInput.w = 0;
+
+    aOutput.calibrationFlag = false;
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    aOutput.tau1 = 0;
+    aOutput.tau2 = 0;
+    aOutput.tau3 = 0;
 
     aOutput.enableMotor1 = true;
     aOutput.enableMotor2 = true;
-
+    printf("aInput size: %d, aOutput size: %d \n", sizeof(ADS_INPUT), sizeof(ADS_OUTPUT));
     nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
     if (nErr != 0) {
         printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
     }
 
     m_deviceReady = false;
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 50; i++) {
         nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
         if (nErr != 0) {
             printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
@@ -201,7 +237,7 @@ bool cAgileEyeDevice::open(){
 bool cAgileEyeDevice::close(){
     // check if the system has been opened previously
     if (!m_deviceReady) {
-
+        printf("[AgileEye-close] Device is not opened\n");
         return (C_ERROR);
     }
 
@@ -217,17 +253,8 @@ bool cAgileEyeDevice::close(){
     nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
     if (nErr != 0) {
         printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+        result = C_ERROR;
     }
-
-	nErr = AdsPortClose();
-	if (nErr != 0) {
-		printf("[AGILE_EYE] Error: ADS Port Close Error: %d\n", nErr);
-		result = C_ERROR;
-	}
-	else {
-        printf("[AGILE_EYE] ADS Port Closed \n", nErr);
-		result = C_SUCCESS;
-	}
 #endif
 
     // update status

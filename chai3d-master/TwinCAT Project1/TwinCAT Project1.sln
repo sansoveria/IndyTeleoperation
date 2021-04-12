@@ -7,8 +7,6 @@ Project("{B1E792BE-AA5F-4E3C-8C82-674BF9C0715B}") = "TwinCAT Project1", "TwinCAT
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MFCApplication1", "MFCApplication1\MFCApplication1.vcxproj", "{5A248ACF-F204-41D3-A395-0455706608FE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "99-2-ODE-teleoperation_Falcon", "..\chai3d-master\modules\ODE\examples\GLFW\99-2-ODE-teleoperation_Falcon\99-2-ODE-teleoperation_Falcon-VS2015.vcxproj", "{3CE54783-90FC-440F-9815-A1A37EAD3BCE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|TwinCAT CE7 (ARMV7) = Debug|TwinCAT CE7 (ARMV7)
@@ -107,28 +105,6 @@ Global
 		{14DA756E-9EB9-4F66-BB82-D27A601AA1A1}.Release|TwinCAT UM (x86).Build.0 = Release|TwinCAT UM (x86)
 		{14DA756E-9EB9-4F66-BB82-D27A601AA1A1}.Release|x64.ActiveCfg = Release|TwinCAT UM (x64)
 		{14DA756E-9EB9-4F66-BB82-D27A601AA1A1}.Release|x86.ActiveCfg = Release|TwinCAT UM (x86)
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT CE7 (ARMV7).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT OS (ARMT2).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT OS (x64).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT RT (x64).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT RT (x86).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT UM (x64).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|TwinCAT UM (x86).ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|x64.ActiveCfg = Debug|x64
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|x64.Build.0 = Debug|x64
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|x86.ActiveCfg = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Debug|x86.Build.0 = Debug|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT CE7 (ARMV7).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT OS (ARMT2).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT OS (x64).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT RT (x64).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT RT (x86).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT UM (x64).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|TwinCAT UM (x86).ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x64.ActiveCfg = Release|x64
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x64.Build.0 = Release|x64
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x86.ActiveCfg = Release|Win32
-		{3CE54783-90FC-440F-9815-A1A37EAD3BCE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

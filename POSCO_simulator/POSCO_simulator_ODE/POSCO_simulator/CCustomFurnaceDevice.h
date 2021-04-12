@@ -139,9 +139,10 @@ namespace chai3d {
         //--------------------------------------------------------------------------
 
     protected:
-        cDeltaDevicePtr m_falcon;
-        cAgileEyeDevicePtr m_agileEye;
-
+        cGenericHapticDevicePtr m_falcon;
+        cGenericHapticDevicePtr m_agileEye;
+        //cDeltaDevice* m_falcon;
+        //cAgileEyeDevice* m_agileEye;
     };
 
 //------------------------------------------------------------------------------

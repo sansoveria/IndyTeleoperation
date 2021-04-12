@@ -338,7 +338,7 @@ void cBulletFurnace::addVisualComponent(cGenericObject* object) {
     _camera->m_frontLayer->addChild(object);
 }
 
-void cBulletFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand) {
+void cBulletFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, bool activateCommand) {
     //cVector3d posTool = _endEffectorCursor->getLocalPos();
     //cMatrix3d rotTool = _endEffectorCursor->getLocalRot();
 

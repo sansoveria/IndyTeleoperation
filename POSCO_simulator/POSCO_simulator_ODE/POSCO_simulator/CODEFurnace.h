@@ -31,7 +31,7 @@ public:
         const cMatrix3d& globalRot = cIdentity3d());
     void updateDynamics(double interval);
     void addVisualComponent(cGenericObject* object);
-    void updateUserCommand(cVector3d position, cMatrix3d rotation);
+    void updateUserCommand(cVector3d position, cMatrix3d rotation, bool activateCommand = false);
     void getCameraPose(cVector3d& eye, cVector3d& target);
     void updateCameraPose(cVector3d eye, cVector3d target);
     void moveCamera(cVector3d step);

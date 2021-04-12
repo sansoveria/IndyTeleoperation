@@ -337,7 +337,7 @@ void cODEFurnace::setEndEffectorPose(cVector3d position, cMatrix3d rotation) {
     _endEffectorTool->setLocalRot(toolRotation);
 }
 
-void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand) {
+void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, bool activateCommand) {
     cVector3d posTool = _endEffectorTool->getLocalPos();
     cMatrix3d rotTool = _endEffectorTool->getLocalRot() * cTranspose(localToolCoordRotation);
     cVector3d posControlPoint = posTool + cMul(_endEffectorTool->getLocalRot(), cVector3d(0, 0, -END_EFFECTOR_TOOL_LENGTH / 2.0));
@@ -355,7 +355,9 @@ void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand) 
     cVector3d force, torque, forceAux;
     //force = _linStiffness * deltaPos - _linDamping * cVector3d(linVelocity[0], linVelocity[1], linVelocity[2]);
     force = _linStiffness * deltaPos;
-    _endEffectorTool->addExternalForce(force);
+    if (activateCommand) {
+        _endEffectorTool->addExternalForce(force);
+    }
 
     //torque = cMul((_angStiffness * angle), axis) - _angDamping * cVector3d(angVelocity[0], angVelocity[1], angVelocity[2]);
     torque = _angStiffness * axisAngle;
@@ -364,8 +366,10 @@ void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand) 
     rotTool.mul(forceAux);
     rotTool.mul(torque);
 
-    _endEffectorTool->addExternalTorque(torque);
-    _endEffectorTool->addExternalForce(forceAux);
+    if (activateCommand) {
+        _endEffectorTool->addExternalTorque(torque);
+        _endEffectorTool->addExternalForce(forceAux);
+    }
 
     _endEffectorCursorMesh->setLocalPos(posCommand);
     _endEffectorCursorMesh->setLocalRot(rotCommand);

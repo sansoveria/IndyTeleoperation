@@ -123,12 +123,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../../../chai3D-master/chai3D-master/modules/ODE/src;../../../chai3D-master/chai3D-master/modules/ODE/external/ODE/include;../../../chai3D-master/chai3D-master/modules/BULLET/src;../../../chai3D-master/chai3D-master/modules/BULLET/external/BULLET/src;../../../chai3D-master/chai3D-master/src;../../../chai3D-master/chai3D-master/external/Eigen;../../../chai3D-master/chai3D-master/external/glew/include;../../../chai3D-master/chai3D-master/extras/glfw/include;C:\Program Files (x86)\Intel RealSense SDK 2.0\include;C:\Program Files (x86)\Intel RealSense SDK 2.0\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../../../chai3D-master/chai3D-master/modules/ODE/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/modules/BULLET/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/extras/glfw/lib/$(Configuration)/$(Platform);C:\Program Files (x86)\Intel RealSense SDK 2.0\lib\$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw.lib;OpenGL32.lib;glu32.lib;chai3d.lib;chai3d-ODE.lib;chai3d-BULLET.lib;realsense2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -137,14 +140,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>../../../chai3D-master/chai3D-master/modules/ODE/src;../../../chai3D-master/chai3D-master/modules/ODE/external/ODE/include;../../../chai3D-master/chai3D-master/modules/BULLET/src;../../../chai3D-master/chai3D-master/modules/BULLET/external/BULLET/src;../../../chai3D-master/chai3D-master/src;../../../chai3D-master/chai3D-master/external/Eigen;../../../chai3D-master/chai3D-master/extras/glfw/include;../../../chai3D-master/chai3D-master/external/glew/include;C:\Program Files (x86)\Intel RealSense SDK 2.0\include;C:\Program Files (x86)\Intel RealSense SDK 2.0\samples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../../../chai3D-master/chai3D-master/modules/ODE/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/modules/BULLET/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/lib/$(Configuration)/$(Platform);../../../chai3D-master/chai3D-master/extras/glfw/lib/$(Configuration)/$(Platform);C:\Program Files (x86)\Intel RealSense SDK 2.0\lib\$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw.lib;OpenGL32.lib;glu32.lib;chai3d.lib;chai3d-ODE.lib;chai3d-BULLET.lib;realsense2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -166,6 +172,7 @@
     <ClInclude Include="CGenericFurnace.h" />
     <ClInclude Include="CIndyFurnace.h" />
     <ClInclude Include="CODEFurnace.h" />
+    <ClInclude Include="definitions.h" />
     <ClInclude Include="POSCO_simulator.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

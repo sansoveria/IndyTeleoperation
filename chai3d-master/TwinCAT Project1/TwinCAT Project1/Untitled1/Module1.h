@@ -10,7 +10,8 @@
 //#define GEAR_RATIO				5.0
 #define MOTOR_PART_NUMBER		B7BA2318BDD0
 #define NOMINAL_TORQUE			0.19
-#define GEAR_RATIO				(6.6*60.0/18.0)
+#define GEAR_RATIO_1				(6.6*60.0/18.0)
+#define GEAR_RATIO_2				(6.6*60.0/15.0)
 
 // parameter ids for TwinCAT module Module1 with disabled code generation
 // could be moved to Untitled1Services.h

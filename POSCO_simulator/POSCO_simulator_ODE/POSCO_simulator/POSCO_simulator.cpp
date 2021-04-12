@@ -453,6 +453,7 @@ void updateUserInterface(void)
 
     // start haptic device
     if (isHapticDeviceAvailable) hapticDevice->open();
+    else cout << "[updateUserInterface] Haptic device is not available!" << endl;
 
     // simulation clock
     cPrecisionClock userInterfaceClock;
@@ -470,15 +471,19 @@ void updateUserInterface(void)
         }
 
         if (isHapticDeviceAvailable) {
+            
+            
             if (hapticDevice->getPosition(inputCursorPosition) && hapticDevice->getRotation(inputCursorRotation)) {
                 inputCursorPosition.mul(workspaceScaleFactor);
 
-                // TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
-                // convert coordinate
-                // TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
+                 //TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
+                 //convert coordinate
+                 //TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
             }
 
-            hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
+            
+
+            //hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
         }
   
         // reset clock
@@ -511,9 +516,15 @@ void updateWorld(void)
         double time = worldClock.getCurrentTimeSeconds();
         //double nextSimInterval = 0.001;//
         double nextSimInterval = time;
+#if defined(USE_INDY)
         if (time < 0.00199) {
             continue;
         }
+#else
+        if (time < 0.0199) {
+            continue;
+        }
+#endif
 
         // compute global reference frames for each object
         workspace->computeGlobalPositions(true);

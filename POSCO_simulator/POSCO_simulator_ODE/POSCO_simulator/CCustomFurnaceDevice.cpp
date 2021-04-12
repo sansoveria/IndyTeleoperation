@@ -64,17 +64,33 @@ namespace chai3d {
         count = cDeltaDevice::getNumDevices();
         if (count > 0){
             m_falcon = cDeltaDevice::create(0);
+            //m_falcon = new cDeltaDevice(0);
             if (m_falcon->open()){
+                printf("[CustomFurnaceDevice] Found Falcon \n");
                 m_falcon->close();
             }
+            else {
+                printf("[CustomFurnaceDevice] Cannot open Falcon \n");
+            }
+        }
+        else{
+            printf("[CustomFurnaceDevice] Cannot find Falcon \n");
         }
 
         count = cAgileEyeDevice::getNumDevices();
         if (count > 0) {
             m_agileEye = cAgileEyeDevice::create(0);
+            //m_agileEye = new cAgileEyeDevice(0);
             if (m_agileEye->open()) {
+                printf("[CustomFurnaceDevice] Found AgileEye \n");
                 m_agileEye->close();
             }
+            else {
+                printf("[CustomFurnaceDevice] Cannot open AgileEye \n");
+            }
+        }
+        else {
+            printf("[CustomFurnaceDevice] Cannot find AgileEye \n");
         }
 
         m_specifications.m_model = C_HAPTIC_DEVICE_CUSTOM;
@@ -87,13 +103,15 @@ namespace chai3d {
         m_specifications.m_workspaceRadius = m_falcon->m_specifications.m_workspaceRadius;		                    // [m]
         m_specifications.m_maxGripperLinearStiffness = m_falcon->m_specifications.m_maxGripperLinearStiffness;		// [N*m]
         m_specifications.m_gripperMaxAngleRad = m_falcon->m_specifications.m_gripperMaxAngleRad;
+#ifdef USE_AGILE_EYE
         m_specifications.m_maxAngularTorque = m_agileEye->m_specifications.m_maxAngularTorque;		        // [N*m]
         m_specifications.m_maxAngularStiffness = m_agileEye->m_specifications.m_maxAngularStiffness;		    // [N*m/Rad]
+        m_specifications.m_sensedRotation = m_agileEye->m_specifications.m_sensedRotation;
+#endif
         m_specifications.m_maxLinearDamping = m_falcon->m_specifications.m_maxLinearDamping;		                // [N/(m/s)]
         m_specifications.m_maxGripperAngularDamping = 0.0;		// [N*m/(Rad/s)]
         m_specifications.m_maxAngularDamping = m_falcon->m_specifications.m_maxAngularDamping;		// [N*m/(Rad/s)]
         m_specifications.m_sensedPosition = m_falcon->m_specifications.m_sensedPosition;
-        m_specifications.m_sensedRotation = m_agileEye->m_specifications.m_sensedRotation;
         m_specifications.m_sensedGripper = m_falcon->m_specifications.m_sensedGripper;
         m_specifications.m_actuatedPosition = m_falcon->m_specifications.m_actuatedPosition;
         m_specifications.m_actuatedRotation = m_falcon->m_specifications.m_actuatedRotation;
@@ -109,7 +127,18 @@ namespace chai3d {
     */
     //==============================================================================
     cCustomFurnaceDevice::~cCustomFurnaceDevice(){
-        close();
+        if (close()) {
+            printf("[cCustomFurnaceDevice] Device is closed successfully \n");
+        }
+        else {
+            printf("[cCustomFurnaceDevice] Failed to close device \n");
+        }
+        //delete m_falcon;
+
+        m_falcon = cGenericHapticDevicePtr();
+#ifndef USE_AGILE_EYE
+        m_agileEye = cGenericHapticDevicePtr();
+#endif
     }
 
 
@@ -121,6 +150,7 @@ namespace chai3d {
     */
     //==============================================================================
     bool cCustomFurnaceDevice::open(){
+#ifdef USE_AGILE_EYE
         if (m_falcon->open() && m_agileEye->open()) {
             return C_SUCCESS;
         }
@@ -129,6 +159,15 @@ namespace chai3d {
             m_agileEye->close();
             return C_ERROR;
         }
+#else
+        if (m_falcon->open()) {
+            return C_SUCCESS;
+        }
+        else {
+            m_falcon->close();
+            return C_ERROR;
+        }
+#endif
     }
 
 
@@ -140,12 +179,21 @@ namespace chai3d {
     */
     //==============================================================================
     bool cCustomFurnaceDevice::close(){
+#ifdef USE_AGILE_EYE
         if (m_falcon->close() && m_agileEye->close()) {
             return C_SUCCESS;
         }
         else {
             return C_ERROR;
         }
+#else
+        if (m_falcon->close()) {
+            return C_SUCCESS;
+        }
+        else {
+            return C_ERROR;
+        }
+#endif
     }
 
 
@@ -157,9 +205,13 @@ namespace chai3d {
     */
     //==============================================================================
     bool cCustomFurnaceDevice::calibrate(bool a_forceCalibration){
+#ifdef USE_AGILE_EYE
         if (!m_falcon->isDeviceReady() || !m_agileEye->isDeviceReady()) return (C_ERROR);
-
         return m_falcon->calibrate(a_forceCalibration) && m_agileEye->calibrate(a_forceCalibration);
+#else
+        if (!m_falcon->isDeviceReady()) return (C_ERROR);
+        return m_falcon->calibrate(a_forceCalibration);
+#endif
     }
 
 
@@ -171,10 +223,16 @@ namespace chai3d {
     */
     //==============================================================================
     unsigned int cCustomFurnaceDevice::getNumDevices() {
-        if (cDeltaDevice::getNumDevices() > 0 && cAgileEyeDevice::getNumDevices() > 0) {
+        if (cDeltaDevice::getNumDevices() > 0 
+#ifdef USE_AGILE_EYE
+            && cAgileEyeDevice::getNumDevices() > 0
+#endif
+            ) {
+            printf("[CustomFurnaceDevice] Found device \n");
             return 1;
         }
         else {
+            printf("[CustomFurnaceDevice] Cannot find device \n");
             return 0;
         }
     }
@@ -203,7 +261,11 @@ namespace chai3d {
     */
     //==============================================================================
     bool cCustomFurnaceDevice::getRotation(cMatrix3d& a_rotation) {
+#ifdef USE_AGILE_EYE
         return m_agileEye->getRotation(a_rotation);
+#else
+        return true;
+#endif
     }
 
 
@@ -222,8 +284,12 @@ namespace chai3d {
     bool cCustomFurnaceDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
         const cVector3d& a_torque,
         const double a_gripperForce){
+#ifdef USE_AGILE_EYE
         return m_falcon->setForceAndTorqueAndGripperForce(a_force, a_torque, a_gripperForce)
             && m_agileEye->setForceAndTorqueAndGripperForce(a_force, a_torque, a_gripperForce);
+#else
+        return m_falcon->setForceAndTorqueAndGripperForce(a_force, a_torque, a_gripperForce);
+#endif
     }
 
 

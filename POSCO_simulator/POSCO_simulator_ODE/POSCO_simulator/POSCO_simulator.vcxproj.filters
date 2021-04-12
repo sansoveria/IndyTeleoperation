@@ -71,5 +71,8 @@
     <ClInclude Include="CIndyFurnace.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="definitions.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

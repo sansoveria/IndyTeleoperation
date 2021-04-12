@@ -81,7 +81,7 @@ void cIndyFurnace::setEndEffectorPose(cVector3d position, cMatrix3d rotation) {
     // TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
 }
 
-void cIndyFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand) {
+void cIndyFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, bool activateCommand) {
     // TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
     // code for indy communication (send pose and receive sensor values)
     // TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
@@ -116,14 +116,14 @@ void cIndyFurnace::renderView(const int a_windowWidth, const int a_windowHeight,
     //cout << color.get_data_size() << endl;
 
     _pointCloud->clear();
+    int pointSampling = 3;
 
     //_pointCloud->m_texture->setImage(_pointCloudTextureMap);
     //_pointCloud->setUseTexture(true, true);
     _pointCloud->setUseVertexColors(true, true);
     //_pointCloud->setUseMaterial(true, true);
     //_pointCloud->m_material->setWhite();
-    _pointCloud->setPointSize(4.0);
-    int pointSampling = 4;
+    _pointCloud->setPointSize(pointSampling);
     for (int xIdx = 0; xIdx < widthDepth / pointSampling; xIdx++){
         for (int yIdx = 0; yIdx < heightDepth / pointSampling; yIdx++) {
             int pointIdx = yIdx * pointSampling * widthDepth + xIdx * pointSampling;
