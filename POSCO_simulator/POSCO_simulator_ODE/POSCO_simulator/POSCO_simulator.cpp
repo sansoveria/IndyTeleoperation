@@ -86,7 +86,9 @@ int main()
     inputCursorRotation = rotateZ(M_PI);
     workspace->setEndEffectorPose(cVector3d(INITIAL_CURSOR_POS_X, INITIAL_CURSOR_POS_Y, INITIAL_CURSOR_POS_Z), inputCursorRotation);
 
-    workspace->setEndEffectorStiffness(10.0, 0.1);
+    workspace->setEndEffectorStiffness(10.0, 3.0);
+    workspace->maxForce = 50.0;
+    workspace->maxTorque = 30.0;
 
     //-----------------------------------------------------------------------
     // HAPTIC DEVICES / TOOLS
@@ -117,7 +119,7 @@ int main()
     workspace->addVisualComponent(panel);
     panel->setColor(cColorf(0.0, 0.0, 0.0));
     panel->setTransparencyLevel(0.8);
-    cout << width << ", " << height << endl;
+    //cout << width << ", " << height << endl;
 
     // create a label to display the haptic and graphic rate of the simulation
     labelRates = new cLabel(font);
@@ -144,23 +146,33 @@ int main()
     labelTorque->m_fontColor.setWhite();
     workspace->addVisualComponent(labelTorque);
 
-    levelForce = new cLevel();
-    workspace->addVisualComponent(levelForce);
-    levelForce->setRange(0.0, 100.0);
-    levelForce->setSingleIncrementDisplay(true);
-    levelForce->rotateWidgetDeg(270);
-    levelForce->m_colorActive.setBlueCornflower();
-    levelForce->m_colorInactive = levelForce->m_colorActive;
-    levelForce->m_colorInactive.mul(0.3f);
+    //levelForce = new cLevel();
+    //workspace->addVisualComponent(levelForce);
+    //levelForce->setRange(0.0, workspace->maxForce);
+    //levelForce->setSingleIncrementDisplay(true);
+    //levelForce->rotateWidgetDeg(270);
+    //levelForce->m_colorActive.setBlueCornflower();
+    //levelForce->m_colorInactive = levelForce->m_colorActive;
+    //levelForce->m_colorInactive.mul(0.3f);
+    scopeForce = new cScope();
+    workspace->addVisualComponent(scopeForce);
+    scopeForce->setRange(0.0, workspace->maxForce*1.1);
+    scopeForce->setSignalEnabled(true, true, false, false);
+    scopeForce->m_colorSignal1.set(1.0, 0.0, 0.0);
+    scopeTorque = new cScope();
+    workspace->addVisualComponent(scopeTorque);
+    scopeTorque->setRange(0.0, workspace->maxTorque*1.1);
+    scopeTorque->setSignalEnabled(true, true, false, false);
+    scopeTorque->m_colorSignal1.set(1.0, 0.0, 0.0);
 
-    levelTorque = new cLevel();
-    workspace->addVisualComponent(levelTorque);
-    levelTorque->setRange(0.0, 20.0);
-    levelTorque->setSingleIncrementDisplay(true);
-    levelTorque->rotateWidgetDeg(270);
-    levelTorque->m_colorActive.setBlueCornflower();
-    levelTorque->m_colorInactive = levelTorque->m_colorActive;
-    levelTorque->m_colorInactive.mul(0.3f);
+    //levelTorque = new cLevel();
+    //workspace->addVisualComponent(levelTorque);
+    //levelTorque->setRange(0.0, workspace->maxTorque);
+    //levelTorque->setSingleIncrementDisplay(true);
+    //levelTorque->rotateWidgetDeg(270);
+    //levelTorque->m_colorActive.setBlueCornflower();
+    //levelTorque->m_colorInactive = levelTorque->m_colorActive;
+    //levelTorque->m_colorInactive.mul(0.3f);
 
     //-----------------------------------------------------------------------
     // START SIMULATION
@@ -168,7 +180,7 @@ int main()
 
     // create a thread which starts the main haptics rendering loop
     userInterfaceThread = new cThread();
-    userInterfaceThread->start(updateUserInterface, CTHREAD_PRIORITY_GRAPHICS);
+    userInterfaceThread->start(updateUserInterface, CTHREAD_PRIORITY_HAPTICS);
 
     worldThread = new cThread();
     worldThread->start(updateWorld, CTHREAD_PRIORITY_HAPTICS);
@@ -262,6 +274,33 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
         teleoperationMode = !teleoperationMode;
     }
 
+    else if (a_key == GLFW_KEY_C) {
+        if (isHapticDeviceAvailable) {
+            hapticDevice->calibrate();
+        }
+    }
+
+#ifdef USE_INDY
+    else if (a_key == GLFW_KEY_O) {
+        workspace->switchCameraMode();
+    }
+
+    else if (a_key == GLFW_KEY_R) {
+        workspace->moveRobotHome();
+    }
+
+    else if (a_key == GLFW_KEY_T) {
+        workspace->toggleDirectTeachingMode();
+    }
+
+    else if (a_key == GLFW_KEY_Z) {
+        workspace->moveRobotZero();
+    }
+
+    else if (a_key == GLFW_KEY_P) {
+        workspace->test();
+    }
+#endif
     else if (a_key == GLFW_KEY_W) {
         if (!teleoperationMode) {
             workspace->moveCamera(cameraMovementStepSize * cVector3d(1.0, 0.0, 0.0));
@@ -355,8 +394,7 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 
 //---------------------------------------------------------------------------
 
-void close(void)
-{
+void close(void){
     // stop the simulation
     userInterfaceCommunicating = false;
     worldRunning = false;
@@ -375,59 +413,73 @@ void close(void)
 
 //---------------------------------------------------------------------------
 
-void updateGraphics(void)
-{
+void updateGraphics(void){
     /////////////////////////////////////////////////////////////////////
     // UPDATE WIDGETS
     /////////////////////////////////////////////////////////////////////
 
      // Background panel
-    panel->setCornerRadius(height / 60, height / 60, height / 60, height / 60);
-    panel->setSize(width * 0.9, height * 0.10);
-    panel->setLocalPos(width * 0.05, height * 0.90);
+    //panel->setCornerRadius(height / 60, height / 60, height / 60, height / 60);
+    //panel->setSize(width * 0.9, height * 0.10);
+    //panel->setLocalPos(width * 0.05, height * 0.90);
+    panel->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
+    panel->setSize(width * 0.2, height * 0.5);
+    panel->setLocalPos(width * 0.8, height * 0.5);
 
     // Frequency
-    labelRates->setText("Graphic freq./Haptic freq. \r\n" + cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / " + cStr(freqCounterUserInterface.getFrequency(), 0) + " Hz / " + cStr(freqCounterWorld.getFrequency(), 0) + " Hz");
-    labelRates->setLocalPos((int)(0.5 * (width - labelRates->getWidth())), height * 0.05);
+    labelRates->setText("Graphic freq./UI freq./World freq \r\n" + cStr(freqCounterGraphics.getFrequency(), 0) + " Hz / " + cStr(freqCounterUserInterface.getFrequency(), 0) + " Hz / " + cStr(freqCounterWorld.getFrequency(), 0) + " Hz");
+    labelRates->setLocalPos((int)(0.5 * (width - labelRates->getTextWidth())), height * 0.05);
     labelRates->setFontScale(1.0 / 500.0 * height);
 
-    //// Status
-    //if (MISSION_STARTED) {
-    //    labelStatus->setText("Remove black stones\r\n(remaining stones: " + cStr(num_stone_remain) + ")");
-    //    labelStatus->setLocalPos((width - labelStatus->getWidth()) - height / 60.0 * 20.0, height * 0.93);
-    //}
-    //else {
-    //    labelStatus->setText("Move cursor to the blue circle");
-    //    labelStatus->setLocalPos((width - labelStatus->getWidth()) - height / 60.0 * 20.0, height * 0.93);
-    //}
-    //labelStatus->setFontScale(1.0 / 500.0 * height);
+    //// Level (force, torque)
+    //levelForce->setLocalPos(width * 4.0 / 16.0, height * 0.97);
+    //levelForce->setWidth(height * 0.03);
+    //levelTorque->setLocalPos(width * 11.0 / 16.0, height * 0.97);
+    //levelTorque->setWidth(height * 0.03);
+    //levelForce->setNumIncrements(height / 540 * 100);
+    //levelTorque->setNumIncrements(height / 540 * 100);
+    //levelForce->setValue(sensorForce.length() * 10.0);
+    //levelTorque->setValue(sensorTorque.length() * 10.0);
 
-    //// Result
-    //labelSuccess->setText("Success: " + cStr(num_success));
-    //labelSuccess->setLocalPos((width - labelSuccess->getWidth()) - height / 60.0 * 7.0, height * 0.95);
-    //labelFailure->setText("Failure: " + cStr(num_failure));
-    //labelFailure->setLocalPos((width - labelFailure->getWidth()) - height / 60.0 * 7.0, height * 0.90);
-    //labelSuccess->setFontScale(1.0 / 500.0 * height);
-    //labelFailure->setFontScale(1.0 / 500.0 * height);
+    scopeForce->setLocalPos(width * 0.81, height * 0.8);
+    scopeForce->setSize(width * 0.18, height*0.15);
+    scopeTorque->setLocalPos(width * 0.81, height * 0.6);
+    scopeTorque->setSize(width * 0.18, height * 0.15);
+    if (worldRunning) {
+        scopeForce->setSignalValues(sensorForce.length(), workspace->maxForce);
+        scopeTorque->setSignalValues(sensorTorque.length(), workspace->maxTorque);
+    }
 
-    // Level (force, torque)
-    levelForce->setLocalPos(width * 4.0 / 16.0, height * 0.97);
-    levelForce->setWidth(height * 0.03);
-    levelTorque->setLocalPos(width * 11.0 / 16.0, height * 0.97);
-    levelTorque->setWidth(height * 0.03);
-    labelForce->setLocalPos(width / 8.0, height * 0.94);
-    levelForce->setNumIncrements(height / 540 * 100);
-    labelTorque->setLocalPos(width * 9.0 / 16.0, height * 0.94);
-    levelTorque->setNumIncrements(height/540*100);    
-    levelForce->setValue(sensorForce.length());
-    levelTorque->setValue(sensorTorque.length());
-    labelForce->setText("Force (" + cStr(sensorForce.length(), 2) + ")");
-    labelTorque->setText("Torque (" + cStr(sensorTorque.length(), 2) + ")");    
-    
+    //labelForce->setLocalPos(width / 8.0, height * 0.94);
+    //labelTorque->setLocalPos(width * 9.0 / 16.0, height * 0.94);
+    labelForce->setLocalPos(width * 0.81, height * 0.95);
+    labelTorque->setLocalPos(width * 0.81, height * 0.75);
+    if (worldRunning) {
+        labelForce->setText("Force (" + cStr(sensorForce.length(), 2) + ")");
+        labelTorque->setText("Torque (" + cStr(sensorTorque.length(), 2) + ")");
+        //labelForce->setText("Force");
+        //labelTorque->setText("Torque");
+    }
     labelForce->setFontScale(1.0 / 500.0 * height);
     labelTorque->setFontScale(1.0 / 500.0 * height);
 
+#ifndef USE_INDY
+    /////////////////////////////////////////////////////////////////////
+    // UPDATE CAMERA
+    /////////////////////////////////////////////////////////////////////
+    // calculate tool endtip position
+    cVector3d endEffectorPosition;
+    cMatrix3d endEffectorRotation;
+    workspace->getEndEffectorPose(endEffectorPosition, endEffectorRotation);
+    cVector3d Eye_Point = cVector3d(-0.3, 0.0, 0.0);
+    cVector3d Target_Point = cVector3d(END_EFFECTOR_TOOL_LENGTH, 0.0, 0.0);
+    cVector3d Eye_Point_Global = endEffectorRotation * Eye_Point + endEffectorPosition + cVector3d(0.0, 0.0, 0.1);
+    cVector3d Target_Point_Global = endEffectorRotation * Target_Point + endEffectorPosition;
 
+    // position and orient the camera
+    workspace->updateCameraPose(Eye_Point_Global,      // camera position (eye)
+        Target_Point_Global);                        // lookat position (target)
+#endif
 
     /////////////////////////////////////////////////////////////////////
     // RENDER SCENE
@@ -445,8 +497,7 @@ void updateGraphics(void)
 
 //---------------------------------------------------------------------------
 
-void updateUserInterface(void)
-{
+void updateUserInterface(void){
     // simulation in now running
     userInterfaceCommunicating = true;
     userInterfaceThreadFinished = false;
@@ -464,34 +515,95 @@ void updateUserInterface(void)
 
         // retrieve simulation time and compute next interval
         double time = userInterfaceClock.getCurrentTimeSeconds();
-        //double nextSimInterval = 0.001;//
-        double nextSimInterval = time;
-        if (time < 0.00199) {
+        
+        if (time < 0.002) {
             continue;
         }
 
-        if (isHapticDeviceAvailable) {
-            
-            
-            if (hapticDevice->getPosition(inputCursorPosition) && hapticDevice->getRotation(inputCursorRotation)) {
-                inputCursorPosition.mul(workspaceScaleFactor);
-
-                 //TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
-                 //convert coordinate
-                 //TODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODOTODO
-            }
-
-            
-
-            //hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
-        }
-  
         // reset clock
         userInterfaceClock.reset();
         userInterfaceClock.start();
 
         // signal frequency counter
         freqCounterUserInterface.signal(1);
+
+        if (isHapticDeviceAvailable) {     
+            cVector3d devicePosition;
+            cMatrix3d deviceRotation;
+            if (hapticDevice->getPosition(devicePosition) && hapticDevice->getRotation(deviceRotation)) {
+                devicePosition.mul(workspaceScaleFactor);
+            }
+            unsigned int deviceSwitch;
+            hapticDevice->getUserSwitches(deviceSwitch);
+
+            if (deviceSwitch == 2) {
+                if (!isButtonPressed) {
+                    // set device zero pose
+                    cVector3d endEffectorPosition;
+                    cMatrix3d endEffectorRotation;
+                    workspace->getEndEffectorPose(endEffectorPosition, endEffectorRotation);
+                    deviceZeroPosition = endEffectorPosition - devicePosition;
+                    deviceZeroRotation = cMul(cTranspose(deviceRotation), endEffectorRotation);
+
+                    isButtonPressed = true;
+                    printf("button pressed\n");
+                }
+                else {
+                    commandActivate = true;
+                }
+            }
+            else {
+                isButtonPressed = false;
+                commandActivate = false;
+            }
+
+            inputCursorPosition = deviceZeroPosition + devicePosition;
+            inputCursorRotation = cMul(deviceRotation, deviceZeroRotation);
+
+#ifdef USE_INDY
+            double maxRenderForce = 5.0;
+            double maxRenderTorque = 0.05;
+            renderForce = sensorForce * 3.0;
+            renderTorque = sensorTorque * 0.1;
+
+            if (renderForce.length() > maxRenderForce) {
+                renderForce = renderForce / renderForce.length() * maxRenderForce;
+            }
+            if (renderTorque.length() > maxRenderTorque) {
+                renderTorque = renderTorque / renderTorque.length() * maxRenderTorque;
+            }
+
+            if (commandActivate) {
+                hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
+            }
+            else {
+                //printf("%.3f, %.3f, %.3f\n", renderTorque(0), renderTorque(1), renderTorque(2));
+                hapticDevice->setForceAndTorqueAndGripperForce(cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), 0.0);
+            }
+            //hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
+#else
+            double maxRenderForce = 4.0;
+            double maxRenderTorque = 0.05;
+            renderForce = sensorForce * 1.0;
+            renderTorque = sensorTorque * 0.04;
+
+            if (renderForce.length() > maxRenderForce) {
+                renderForce = renderForce / renderForce.length() * maxRenderForce;
+            }
+            if (renderTorque.length() > maxRenderTorque) {
+                renderTorque = renderTorque / renderTorque.length() * maxRenderTorque;
+            }
+
+            if (commandActivate) {
+                //printf("%.3f, %.3f, %.3f\n", renderTorque(0), renderTorque(1), renderTorque(2));
+                hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
+            }
+            else {
+                //printf("%.3f, %.3f, %.3f\n", renderTorque(0), renderTorque(1), renderTorque(2));
+                hapticDevice->setForceAndTorqueAndGripperForce(cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), 0.0);
+            }
+#endif
+        } 
     }
 
     // exit haptics thread
@@ -499,8 +611,7 @@ void updateUserInterface(void)
 }
 
 
-void updateWorld(void)
-{
+void updateWorld(void){
     // simulation in now running
     worldRunning = true;
     worldThreadFinished = false;
@@ -514,25 +625,19 @@ void updateWorld(void)
 
         // retrieve simulation time and compute next interval
         double time = worldClock.getCurrentTimeSeconds();
-        //double nextSimInterval = 0.001;//
-        double nextSimInterval = time;
+
 #if defined(USE_INDY)
-        if (time < 0.00199) {
-            continue;
+        while (time < 0.00199) {
+            time = worldClock.getCurrentTimeSeconds();
         }
 #else
-        if (time < 0.0199) {
-            continue;
+        while (time < 0.00199) {
+            time = worldClock.getCurrentTimeSeconds();
         }
 #endif
 
-        // compute global reference frames for each object
-        workspace->computeGlobalPositions(true);
-
-        // update position and orientation of tool
-        workspace->updateUserCommand(inputCursorPosition, inputCursorRotation);
-        workspace->getForceTorqueSensorValue(sensorForce, sensorTorque);
-        workspace->updateDynamics(nextSimInterval);
+        //double nextSimInterval = 0.001;//
+        double nextSimInterval = time;
 
         // reset clock
         worldClock.reset();
@@ -540,6 +645,110 @@ void updateWorld(void)
 
         // signal frequency counter
         freqCounterWorld.signal(1);
+
+        // compute global reference frames for each object
+        workspace->computeGlobalPositions(true);
+
+#ifdef USE_INDY
+        if (commandActivate) {
+            if (workspace->getRobotControlMode() != 20) {
+                workspace->startTeleoperationMode();
+            }
+        }
+        else {
+            if (workspace->getRobotControlMode() == 20) {
+                workspace->quitTeleoperationMode();
+            }
+        }
+#endif
+
+        // update position and orientation of tool
+        workspace->updateUserCommand(inputCursorPosition, inputCursorRotation, commandActivate);
+        workspace->getForceTorqueSensorValue(sensorForce, sensorTorque);
+        workspace->updateDynamics(nextSimInterval);
+
+
+#ifdef USE_INDY
+        //// check simulation rule
+        //int res = workspace->checkSimulationRule();
+        //if (res > 0) {
+        //    printf("Demonstration succeeded (%d)\n", res);
+
+        //    panelMessage = new cPanel();
+        //    panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
+        //    panelMessage->setTransparencyLevel(0.8);
+        //    panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
+        //    panelMessage->setSize(width, height * 0.2);
+        //    panelMessage->setLocalPos(0, height * 0.4);
+        //    workspace->addVisualComponent(panelMessage);
+
+        //    cFontPtr font = NEW_CFONTCALIBRI20();
+        //    labelMessage = new cLabel(font);
+        //    labelMessage->m_fontColor.setWhite();
+
+        //    labelMessage->setText("Demonstration succeeded.");
+        //    labelMessage->setFontScale(1.5 / 500.0 * height);
+        //    labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
+
+        //    workspace->addVisualComponent(labelMessage);
+        //    worldRunning = false;
+        //}
+#else
+        // check simulation rule
+        int res = workspace->checkSimulationRule();
+        if (res > 0) {
+            printf("Demonstration succeeded (%d)\n", res);
+
+            panelMessage = new cPanel();
+            panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
+            panelMessage->setTransparencyLevel(0.8);
+            panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
+            panelMessage->setSize(width, height * 0.2);
+            panelMessage->setLocalPos(0, height * 0.4);
+            workspace->addVisualComponent(panelMessage);
+
+            cFontPtr font = NEW_CFONTCALIBRI20();
+            labelMessage = new cLabel(font);
+            labelMessage->m_fontColor.setWhite();
+
+            labelMessage->setText("Demonstration succeeded.");
+            labelMessage->setFontScale(1.5 / 500.0 * height);
+            labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
+
+            workspace->addVisualComponent(labelMessage);
+            sensorForce = cVector3d(0.0, 0.0, 0.0);
+            sensorTorque = cVector3d(0.0, 0.0, 0.0);
+            worldRunning = false;
+        }
+        if (res < 0) {
+            printf("Demonstration failed (%d)\n", res);
+
+            panelMessage = new cPanel();
+            panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
+            panelMessage->setTransparencyLevel(0.8);
+            panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
+            panelMessage->setSize(width, height * 0.2);
+            panelMessage->setLocalPos(0, height * 0.4);
+            workspace->addVisualComponent(panelMessage);
+
+            cFontPtr font = NEW_CFONTCALIBRI20();
+            labelMessage = new cLabel(font);
+            labelMessage->m_fontColor.setRed();
+            if (res == -1) labelMessage->setText("Tool touched flowing iron, demonstration failed.");
+            if (res == -2) labelMessage->setText("Tool touched pouring iron, demonstration failed.");
+            if (res == -3) labelMessage->setText("Excessive force occured, demonstration failed.");
+            if (res == -4) labelMessage->setText("Excessive torque occured, demonstration failed.");
+
+            labelMessage->setFontScale(1.5 / 500.0 * height);
+            labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
+
+            workspace->addVisualComponent(labelMessage);
+            sensorForce = cVector3d(0.0, 0.0, 0.0);
+            sensorTorque= cVector3d(0.0, 0.0, 0.0);
+            worldRunning = false;
+        }
+#endif
+
     }
 
     // exit haptics thread

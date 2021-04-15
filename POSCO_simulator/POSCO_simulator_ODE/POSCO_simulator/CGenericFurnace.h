@@ -29,6 +29,7 @@ public:
     virtual void addVisualComponent(cGenericObject* object) {}
     virtual void updateUserCommand(cVector3d position, cMatrix3d rotation, bool activateCommand=false) {}
     virtual void getCameraPose(cVector3d& eye, cVector3d& target) {}
+    virtual void getEndEffectorPose(cVector3d& pos, cMatrix3d& rot) {}
     virtual void updateCameraPose(cVector3d eye, cVector3d target) {}
     virtual void moveCamera(cVector3d step) {}
     virtual void rotateCamera(double yawStep, double pitchStep) {}
@@ -40,7 +41,7 @@ public:
 
 public:     // member
     cVector3d renderForce, renderTorque;
-
+    double maxForce, maxTorque;
 
 private:    // member
     //! control variables

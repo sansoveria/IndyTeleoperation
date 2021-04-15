@@ -2,7 +2,7 @@
 
 
 // MACRO for real world / simulation
-//#define USE_INDY
+#define USE_INDY
 
 // MACRO for TwinCAT compilation
 #define USE_AGILE_EYE
@@ -11,6 +11,6 @@
 #define USE_ODE
 //#define USE_BULLET
 
-#define INITIAL_CURSOR_POS_X    3.0
-#define INITIAL_CURSOR_POS_Y    0.2
-#define INITIAL_CURSOR_POS_Z    3.
+#define INITIAL_CURSOR_POS_X    5.0
+#define INITIAL_CURSOR_POS_Y    -1.0
+#define INITIAL_CURSOR_POS_Z    2.0

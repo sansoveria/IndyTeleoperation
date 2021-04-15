@@ -39,6 +39,12 @@
     <ClCompile Include="CIndyFurnace.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="CustomIndyDCPClient.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="NRMK_IndyDCPClient.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CODEFurnace.h">
@@ -72,6 +78,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="definitions.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomIndyDCPClient.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="NRMK_IndyDCPClient.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

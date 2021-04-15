@@ -153,16 +153,17 @@ void cCustomODEWorld::calculateToolContactForceAndTorque() {
     m_toolContactForce.zero();
     m_toolContactTorque.zero();
     for (int i = 0; i < _numToolContactFeedback; i++) {
-        if (_toolIdentifier[i] == 0) {
+//        if (_toolIdentifier[i] == 0) {
             m_toolContactForce += cVector3d(_toolContactForceTorque[i].f1[0], _toolContactForceTorque[i].f1[1], _toolContactForceTorque[i].f1[2]);
             m_toolContactTorque += cVector3d(_toolContactForceTorque[i].t1[0], _toolContactForceTorque[i].t1[1], _toolContactForceTorque[i].t1[2]);
             //cout << i << cVector3d(toolContactForce[i].f1[0], toolContactForce[i].f1[1], toolContactForce[i].f1[2]) << endl;
-        }
-        else {
-            m_toolContactForce += cVector3d(_toolContactForceTorque[i].f2[0], _toolContactForceTorque[i].f2[1], _toolContactForceTorque[i].f2[2]);
-            m_toolContactTorque += cVector3d(_toolContactForceTorque[i].t2[0], _toolContactForceTorque[i].t2[1], _toolContactForceTorque[i].t2[2]);
-            //cout << i << cVector3d(toolContactForce[i].f2[0], toolContactForce[i].f2[1], toolContactForce[i].f2[2]) << endl;
-        }
+//        }
+//        else {
+//            m_toolContactForce += cVector3d(_toolContactForceTorque[i].f2[0], _toolContactForceTorque[i].f2[1], _toolContactForceTorque[i].f2[2]);
+//            m_toolContactTorque += cVector3d(_toolContactForceTorque[i].t2[0], _toolContactForceTorque[i].t2[1], _toolContactForceTorque[i].t2[2]);
+            //cout << 1 << cVector3d(_toolContactForceTorque[i].f1[0], _toolContactForceTorque[i].f1[1], _toolContactForceTorque[i].f1[2]) << endl;
+            //cout << 2 << cVector3d(_toolContactForceTorque[i].f2[0], _toolContactForceTorque[i].f2[1], _toolContactForceTorque[i].f2[2]) << endl;
+//        }
     }
     //cout << m_toolContactForce << m_toolContactTorque << endl;
 }
@@ -191,8 +192,7 @@ void cCustomODEWorld::nearCallback(void* a_data, dGeomID a_object1, dGeomID a_ob
 
     dContact contact[MAX_CONTACTS_PER_BODY];
     int n = dCollide(a_object1, a_object2, MAX_CONTACTS_PER_BODY, &(contact[0].geom), sizeof(dContact));
-    if (n > 0)
-    {
+    if (n > 0){
         bool TOOL_CONTACT = false;
         int _toolIdentifier;
         if (b1 == world->m_ode_tool) {
@@ -200,26 +200,28 @@ void cCustomODEWorld::nearCallback(void* a_data, dGeomID a_object1, dGeomID a_ob
             world->m_numToolContactObject++;
             TOOL_CONTACT = true;
             _toolIdentifier = 0;
+            //printf("%d, %p, %p \n",n, b1, b2);
         }
         if (b2 == world->m_ode_tool) {
             world->m_toolContactObjectList[world->m_numToolContactObject] = a_object1;
             world->m_numToolContactObject++;
             TOOL_CONTACT = true;
             _toolIdentifier = 1;
+            //printf("%d, %p, %p \n", n, b1, b2);
         }
 
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < world->m_num_rules; j++) {
-                world->m_custom_rule[i].check(contact[i].geom.g1, contact[i].geom.g2);
+                world->m_custom_rule[j].check(contact[i].geom.g1, contact[i].geom.g2);
             }
 
             // define default collision properties (this section could be extended to support some ODE material class!)
             if (TOOL_CONTACT) {
                 contact[i].surface.mode = 0;
                 contact[i].surface.mode = dContactSoftERP | dContactSoftCFM | dContactApprox1;
-                contact[i].surface.soft_erp = 0.90;
-                contact[i].surface.soft_cfm = 0.10;
+                contact[i].surface.soft_erp = 0.9;
+                contact[i].surface.soft_cfm = 0.5;
             }
             else {
                 contact[i].surface.mode = 0;
@@ -234,14 +236,17 @@ void cCustomODEWorld::nearCallback(void* a_data, dGeomID a_object1, dGeomID a_ob
 
             // get handles on each body
             cODEGenericBody* ode_body = NULL;
-            if (b1 != NULL)
-            {
-                ode_body = (cODEGenericBody*)dBodyGetData(b1);
+            if (TOOL_CONTACT) {
+                ode_body = (cODEGenericBody*)dBodyGetData(world->m_ode_tool);
             }
-            else if (b2 != NULL)
-            {
-                // if first object is static, use the second one. (both objects can not be static) 
-                ode_body = (cODEGenericBody*)dBodyGetData(b2);
+            else {
+                if (b1 != NULL){
+                    ode_body = (cODEGenericBody*)dBodyGetData(b1);
+                }
+                else if (b2 != NULL){
+                    // if first object is static, use the second one. (both objects can not be static) 
+                    ode_body = (cODEGenericBody*)dBodyGetData(b2);
+                }
             }
 
             // create a joint following collision

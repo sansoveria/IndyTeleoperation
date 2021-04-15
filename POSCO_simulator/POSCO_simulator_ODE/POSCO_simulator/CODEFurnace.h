@@ -14,7 +14,9 @@ using namespace chai3d;
 using namespace std;
 //---------------------------------------------------------------------------
 
-#define END_EFFECTOR_TOOL_LENGTH        1.0
+#ifndef USE_INDY
+#define END_EFFECTOR_TOOL_LENGTH        3.0
+#endif 
 
 class cODEFurnace: cGenericFurnace{
 public:
@@ -33,6 +35,7 @@ public:
     void addVisualComponent(cGenericObject* object);
     void updateUserCommand(cVector3d position, cMatrix3d rotation, bool activateCommand = false);
     void getCameraPose(cVector3d& eye, cVector3d& target);
+    void getEndEffectorPose(cVector3d& pos, cMatrix3d& rot);
     void updateCameraPose(cVector3d eye, cVector3d target);
     void moveCamera(cVector3d step);
     void rotateCamera(double yawStep, double pitchStep);
@@ -40,18 +43,20 @@ public:
     void setEndEffectorDamping(double posDamping_, double rotDamping_);
     void setEndEffectorPose(cVector3d position, cMatrix3d rotation);
     void getForceTorqueSensorValue(cVector3d& sensorForce, cVector3d& sensorTorque);
-
+    
+    int checkSimulationRule();
 
 private: 
     void _setWorld();
     void _createStaticObjects();
     void _createEndEffector();
     void _createDynamicObjects();
+    void _createSimulationRule();
 
 
 public:     // member
     cVector3d renderForce, renderTorque;
-
+    double maxForce, maxTorque;
 
 private:    // member
 
@@ -99,6 +104,7 @@ private:    // member
     double _workspaceScaleFactor = 30.0;
     double _linStiffness, _angStiffness, _linDamping, _angDamping;
     double _contactTriangleSize = 0.01;
+    int _toolContactOccur = 10;
 
 };
 #endif	//	CFURNACE

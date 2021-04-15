@@ -15,6 +15,9 @@ cODEFurnace::cODEFurnace() {
     // setup static objects
     _createEndEffector();
 
+    // setup rule
+    _createSimulationRule();
+
     //printf("%p \n", _endEffectorTool->m_ode_body);
     //printf("%p \n", _depositedIron->m_ode_body);
     //printf("%p \n", _wall->m_ode_body);
@@ -75,22 +78,25 @@ void cODEFurnace::_setWorld() {
 
 void cODEFurnace::_createStaticObjects() {
     // define objects
+    _fence = new cODEGenericBody(_furnaceWorld);
     _wall = new cODEGenericBody(_furnaceWorld);
     _splashCover = new cODEGenericBody(_furnaceWorld);
     _outlet = new cODEGenericBody(_furnaceWorld);
-    _fence = new cODEGenericBody(_furnaceWorld);
     _pouringIron = new cODEGenericBody(_furnaceWorld);
     _flowingIron = new cODEGenericBody(_furnaceWorld);
 
+    _fenceMesh = new cMultiMesh();
     _wallMesh = new cMultiMesh();
     _splashCoverMesh = new cMultiMesh();
     _outletMesh = new cMultiMesh();
-    _fenceMesh = new cMultiMesh();
     _pouringIronMesh = new cMultiMesh();
     _flowingIronMesh = new cMesh();
 
 
     // load meshes
+    if (!_fenceMesh->loadFromFile("../Resources/POSCO/support.STL"))
+        printf("[Load fence] 3D Model is failed to load correctly.\n");
+
     if (!_wallMesh->loadFromFile("../Resources/POSCO/outlet_v2.STL"))
         printf("[Load wall] 3D Model is failed to load correctly.\n");
 
@@ -99,18 +105,22 @@ void cODEFurnace::_createStaticObjects() {
 
     if (!_outletMesh->loadFromFile("../Resources/POSCO/outlet_part.STL"))
         printf("[Load outlet] 3D Model is failed to load correctly.\n");
-    
-    if (!_fenceMesh->loadFromFile("../Resources/POSCO/support.STL"))
-        printf("[Load fence] 3D Model is failed to load correctly.\n");
-    
+
     if (!_pouringIronMesh->loadFromFile("../Resources/POSCO/fluid.STL"))
         printf("[Load splash cover] 3D Model is failed to load correctly.\n");
 
-    cCreateBox(_flowingIronMesh, 1.8, 8.0, 0.1);
+    cCreateBox(_flowingIronMesh, 1.8, 8.0, 0.3);
 
 
     // set textures 
     vector<cMesh*>::iterator it;
+    for (it = _fenceMesh->m_meshes->begin(); it < _fenceMesh->m_meshes->end(); it++) {
+        setTextureMapFromFile(*it, "../Resources/POSCO/steel5.jpg", 0.001, 10.0);
+        //(*it)->m_material->m_diffuse.setb(0x19, 0x19, 0x70);
+        //(*it)->m_material->m_ambient.setb(0x19, 0x19, 0x70);
+        //(*it)->m_material->m_emission.setb(0x19/6, 0x19/6, 0x70/6);
+    }
+
     for (it = _wallMesh->m_meshes->begin(); it < _wallMesh->m_meshes->end(); it++) {
         setTextureMapFromFile(*it, "../Resources/POSCO/sand4.jpg", 0.001, 10.0);
     }
@@ -121,13 +131,6 @@ void cODEFurnace::_createStaticObjects() {
 
     for (it = _outletMesh->m_meshes->begin(); it < _outletMesh->m_meshes->end(); it++) {
         (*it)->m_material->setBrownBurlyWood();
-    }
-
-    for (it = _fenceMesh->m_meshes->begin(); it < _fenceMesh->m_meshes->end(); it++) {
-        setTextureMapFromFile(*it, "../Resources/POSCO/steel5.jpg", 0.001, 10.0);
-        //(*it)->m_material->m_diffuse.setb(0x19, 0x19, 0x70);
-        //(*it)->m_material->m_ambient.setb(0x19, 0x19, 0x70);
-        //(*it)->m_material->m_emission.setb(0x19/6, 0x19/6, 0x70/6);
     }
 
     for (it = _pouringIronMesh->m_meshes->begin(); it < _pouringIronMesh->m_meshes->end(); it++) {
@@ -210,27 +213,31 @@ void cODEFurnace::_createStaticObjects() {
 
 
     // set scale
+    _fenceMesh->scale(0.001);
     _wallMesh->scale(0.001);
     _splashCoverMesh->scale(0.001);
     _outletMesh->scale(0.001);
-    _fenceMesh->scale(0.001);
     _pouringIronMesh->scale(0.001);
 
 
     // build dynamic model
+    //_fence->setImageModel(_fenceMesh);
+    //_fence->createDynamicMesh(true);
     _wall->setImageModel(_wallMesh);
     _wall->createDynamicMesh(true);
-    //_splashCover->setImageModel(_splashCoverMesh);
-    //_splashCover->createDynamicMesh(true);
+    _splashCover->setImageModel(_splashCoverMesh);
+    _splashCover->createDynamicMesh(true);
     _outlet->setImageModel(_outletMesh);
     _outlet->createDynamicMesh(true);
-    _fence->setImageModel(_fenceMesh);
-    _fence->createDynamicMesh(true);
     _pouringIron->setImageModel(_pouringIronMesh);
     _pouringIron->createDynamicMesh(true);
     _flowingIron->setImageModel(_flowingIronMesh);
-    _flowingIron->createDynamicBox(1.8, 8.0, 0.1, true);
+    _flowingIron->createDynamicBox(1.8, 8.0, 0.3, true);
 
+
+    _fence->rotateAboutGlobalAxisDeg(1, 0, 0, 90);
+    _fence->rotateAboutGlobalAxisDeg(0, 0, 1, -90);
+    _fence->setLocalPos(1.2, -1.6, 1.3);
 
     _wall->rotateAboutGlobalAxisDeg(1, 0, 0, 90);
     _wall->rotateAboutGlobalAxisDeg(0, 0, 1, 180);
@@ -242,13 +249,8 @@ void cODEFurnace::_createStaticObjects() {
     _outlet->rotateAboutGlobalAxisDeg(1, 0, 0, -90);
     _outlet->setLocalPos(-0.6, -2.7, 2.35);
 
-    _fence->rotateAboutGlobalAxisDeg(1, 0, 0, 90);
-    _fence->rotateAboutGlobalAxisDeg(0, 0, 1, -90);
-    _fence->setLocalPos(1.2, -1.6, 1.3);
-
     _pouringIron->rotateAboutGlobalAxisDeg(1, 0, 0, 90);
     _pouringIron->setLocalPos(-0.165, 0.73, 1.145);
-
 
     _flowingIron->setLocalPos(0.0, 1.25, 0.7);
     //_origin->setLocalPos(0.0, 0.0, 3.0);
@@ -271,7 +273,7 @@ void cODEFurnace::_createDynamicObjects() {
     }
 
     _depositedIronMesh->scale(0.002);
-    _depositedIronMesh->setShowFrame(true);
+    _depositedIronMesh->setShowFrame(false);
     _depositedIron->setImageModel(_depositedIronMesh);
     _depositedIron->createDynamicMesh(false);
     //_depositedIron->setShowFrame(true);
@@ -314,12 +316,13 @@ void cODEFurnace::_createEndEffector() {
     dBodySetLinearDamping(_endEffectorTool->m_ode_body, 0.1);
 
     _endEffectorToolMesh->m_material->setWhite();
-    _endEffectorToolMesh->setShowFrame(true);
-    _endEffectorCursorMesh->m_material->setWhite();
+    _endEffectorToolMesh->setShowFrame(false);
+    _endEffectorCursorMesh->m_material->setRedCrimson();
     _endEffectorCursorMesh->setShowFrame(true);
+    _endEffectorCursorMesh->setFrameSize(0.05, true);
 
     _linStiffness = 1.0;
-    _angStiffness = 1.0;
+    _angStiffness = 0.01;
     _linDamping = 0.0;
     _angDamping = 0.0;
 
@@ -353,13 +356,17 @@ void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, 
 
     // compute force and torque to apply to tool
     cVector3d force, torque, forceAux;
-    //force = _linStiffness * deltaPos - _linDamping * cVector3d(linVelocity[0], linVelocity[1], linVelocity[2]);
+    
     force = _linStiffness * deltaPos;
     if (activateCommand) {
-        _endEffectorTool->addExternalForce(force);
+        if (_toolContactOccur > 0){
+            _endEffectorTool->addExternalForceAtPoint(force, posControlPoint);
+        }
+        else {
+            _endEffectorTool->addExternalForce(force);
+        }
     }
 
-    //torque = cMul((_angStiffness * angle), axis) - _angDamping * cVector3d(angVelocity[0], angVelocity[1], angVelocity[2]);
     torque = _angStiffness * axisAngle;
     forceAux = cCross(
         cMul(localToolCoordRotation, cVector3d(0, 0, -END_EFFECTOR_TOOL_LENGTH / 2.0)), torque);
@@ -371,9 +378,14 @@ void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, 
         _endEffectorTool->addExternalForce(forceAux);
     }
 
-    _endEffectorCursorMesh->setLocalPos(posCommand);
-    _endEffectorCursorMesh->setLocalRot(rotCommand);
-
+    if (activateCommand) {
+        _endEffectorCursorMesh->setLocalPos(posControlPoint + force * 0.01);
+        _endEffectorCursorMesh->setLocalRot(rotCommand);
+    }
+    else{
+        _endEffectorCursorMesh->setLocalPos(posCommand);
+        _endEffectorCursorMesh->setLocalRot(rotCommand);
+    }
     // gravity compensation
     cVector3d gravity = _furnaceWorld->getGravity();
     _endEffectorTool->addExternalForce(_endEffectorTool->getMass() * -gravity);
@@ -394,6 +406,14 @@ void cODEFurnace::computeGlobalPositions(const bool frameOnly, const cVector3d& 
 void cODEFurnace::updateDynamics(double interval) {
     _furnaceWorld->updateDynamics(interval);
     _furnaceWorld->calculateToolContactForceAndTorque();
+    if (_furnaceWorld->m_toolContactForce.length() > 0) {
+        _toolContactOccur = 10;
+    }
+    else {
+        if (_toolContactOccur > 0) {
+            _toolContactOccur--;
+        }
+    }
 }
 
 void cODEFurnace::addVisualComponent(cGenericObject* object) {
@@ -403,6 +423,11 @@ void cODEFurnace::addVisualComponent(cGenericObject* object) {
 void cODEFurnace::getCameraPose(cVector3d& eye, cVector3d& target) {
     eye.copyfrom(_cameraEye);
     target.copyfrom(_cameraTarget);
+}
+
+void cODEFurnace::getEndEffectorPose(cVector3d& pos, cMatrix3d& rot) {
+    (_endEffectorTool->getLocalPos() + cMul(_endEffectorTool->getLocalRot(), cVector3d(0, 0, -END_EFFECTOR_TOOL_LENGTH / 2.0))).copyto(pos);
+    (_endEffectorTool->getLocalRot() * cTranspose(localToolCoordRotation)).copyto(rot);
 }
 
 void cODEFurnace::updateCameraPose(cVector3d eye, cVector3d target) {
@@ -458,3 +483,47 @@ void cODEFurnace::getForceTorqueSensorValue(cVector3d& sensorForce, cVector3d& s
     //}
 }
 
+
+void cODEFurnace::_createSimulationRule() {
+    // failure
+    _furnaceWorld->setCollisionRule(_endEffectorTool->m_ode_geom, _flowingIron->m_ode_geom);
+    _furnaceWorld->setCollisionRule(_endEffectorTool->m_ode_geom, _pouringIron->m_ode_geom);
+    
+    // success
+    _furnaceWorld->setCollisionRule(_depositedIron->m_ode_geom, _flowingIron->m_ode_geom);
+}
+
+int cODEFurnace::checkSimulationRule() {
+    int res = 0;                // nothing
+
+    // tool touched flowing iron
+    if (_furnaceWorld->m_custom_rule[0].collided) {
+        printf("[Demonstration failed] tool touched flowing iron\n");
+        return -1;
+    }
+
+    // tool touched pouring iron
+    if (_furnaceWorld->m_custom_rule[1].collided) {
+        printf("[Demonstration failed] tool touched pouring iron\n");
+        return -2;
+    }
+
+    // maximum force exceeded
+    if (_furnaceWorld->m_toolContactForce.length() > maxForce) {
+        printf("[Demonstration failed] tool force exceeded maximum value\n");
+        return -3;
+    }
+
+    // maximum torque exceeded
+    if (_furnaceWorld->m_toolContactTorque.length() > maxTorque) {
+        printf("[Demonstration failed] tool torque exceeded maximum value\n");
+        return -4;
+    }
+
+    // deposited iron removed
+    if (_furnaceWorld->m_custom_rule[2].collided) {
+        return 1;
+    }
+
+    return res;
+}

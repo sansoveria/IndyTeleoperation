@@ -1,6 +1,10 @@
 #pragma once
 
 //---------------------------------------------------------------------------
+#ifndef _WINSOCKAPI_
+#define _WINSOCKAPI_
+#endif
+
 #include "chai3d.h"
 //---------------------------------------------------------------------------
 #include <GLFW/glfw3.h>
@@ -22,8 +26,11 @@ using namespace std;
 //---------------------------------------------------------------------------
 // CONTROL VARIABLES
 //---------------------------------------------------------------------------
-
-double workspaceScaleFactor = 30.0;
+#ifdef USE_INDY
+    double workspaceScaleFactor = 5.0;
+#else
+    double workspaceScaleFactor = 50.0;
+#endif
 double linGain = 0.05;
 double angGain = 0.03;
 double linG;
@@ -47,9 +54,12 @@ shared_ptr<cCustomFurnaceDevice> hapticDevice;
 bool isHapticDeviceAvailable = false;
 bool userInterfaceCommunicating = false;
 bool userInterfaceThreadFinished = false;
+bool isButtonPressed = false;
 cFrequencyCounter freqCounterUserInterface;
 cThread* userInterfaceThread;
 cVector3d renderForce, renderTorque;
+cVector3d deviceZeroPosition;
+cMatrix3d deviceZeroRotation;
 
 
 // World 
@@ -70,6 +80,7 @@ cThread* worldThread;
 cVector3d sensorForce, sensorTorque;
 
 bool teleoperationMode = false;
+bool commandActivate = false;
 
 // stereo Mode
 /*
@@ -79,7 +90,7 @@ bool teleoperationMode = false;
     C_STEREO_PASSIVE_TOP_BOTTOM:  Passive stereo where L/R images are rendered above each other
 */
 cStereoMode stereoMode = C_STEREO_DISABLED;
-bool fullscreen = false;
+bool fullscreen = true;
 bool mirroredDisplay = false;
 
 GLFWwindow* window = NULL;
@@ -94,10 +105,15 @@ cLabel* labelSuccess;
 cLabel* labelFailure;
 cLabel* labelForce;
 cLabel* labelTorque;
-cLevel* levelForce;
-cLevel* levelTorque;
+//cLevel* levelForce;
+//cLevel* levelTorque;
+cScope* scopeForce;
+cScope* scopeTorque;
 
-
+#ifndef USE_INDY
+    cPanel* panelMessage;
+    cLabel* labelMessage;
+#endif
 //---------------------------------------------------------------------------
 // DECLARED FUNCTIONS
 //---------------------------------------------------------------------------

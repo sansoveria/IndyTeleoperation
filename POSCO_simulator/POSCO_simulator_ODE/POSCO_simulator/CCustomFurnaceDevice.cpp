@@ -44,6 +44,7 @@
 
 //------------------------------------------------------------------------------
 #include "system/CGlobals.h"
+#include "definitions.h"
 #include "CCustomFurnaceDevice.h"
 
 using namespace std;

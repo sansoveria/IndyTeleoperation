@@ -46,12 +46,14 @@
 #include "definitions.h"
 #include "CAgileEyeDevice.h"
 
+#include "utils.h"
+
 
 #if defined(USE_AGILE_EYE) {
 #ifdef WIN64
 #   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/x64/lib/TcAdsDll.lib" )
 #else
-#   pragma comment( lib, "C:\TwinCAT\AdsApi\TcAdsDll\Lib\TcAdsDll.lib" )
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/Lib/TcAdsDll.lib" )
 #endif
 #endif
 
@@ -416,6 +418,8 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
     else {
         a_rotation.set(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     }
+
+    a_rotation = cMul(rotateX(M_PI/2.0), a_rotation);
 #endif
     // exit
     return (result);
@@ -482,9 +486,10 @@ bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     double fy = a_force(1);
     double fz = a_force(2);
 
-    double tx = a_torque(0);
-    double ty = a_torque(1);
-    double tz = a_torque(2);
+    cVector3d torqueTransformed = cMul(rotateX(M_PI / 2.0), a_torque);
+    double tx = torqueTransformed(0);
+    double ty = torqueTransformed(1);
+    double tz = torqueTransformed(2);
 
     double gf = a_gripperForce;
 

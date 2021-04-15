@@ -273,10 +273,10 @@ HRESULT CModule1::CycleUpdate(ITcTask* ipTask, ITcUnknown* ipCaller, ULONG_PTR c
 			//m_DeviceStates.Angle2 = LONG(torque2 / NOMINAL_TORQUE * 1000.0);
 			targetTorque1 = LONG(torque1 / NOMINAL_TORQUE * 1000.0);
 			targetTorque2 = LONG(-torque2 / NOMINAL_TORQUE * 1000.0);
-			if (targetTorque1 > 100) targetTorque1 = 100;
-			if (targetTorque1 < -100) targetTorque1 = -100;
-			if (targetTorque2 > 100) targetTorque2 = 100;
-			if (targetTorque2 < -100) targetTorque2 = -100;
+			if (targetTorque1 > 500) targetTorque1 = 500;
+			if (targetTorque1 < -500) targetTorque1 = -500;
+			if (targetTorque2 > 500) targetTorque2 = 500;
+			if (targetTorque2 < -500) targetTorque2 = -500;
 
 			m_Outputs.TargetTorque1 = targetTorque1;
 			m_Outputs.TargetTorque2 = targetTorque2;
