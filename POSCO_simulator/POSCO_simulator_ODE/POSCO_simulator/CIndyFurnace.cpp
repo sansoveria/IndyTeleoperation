@@ -1,7 +1,13 @@
 #pragma once
-
+#ifdef USE_INDY
 #include "CIndyFurnace.h"
 #include "example.hpp"          // Include short list of convenience functions for rendering
+
+#ifdef WIN64
+#   pragma comment( lib, "C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x64/realsense2.lib" )
+#else
+#   pragma comment( lib, "C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x86/realsense2.lib" )
+#endif
 
 
 using namespace std;
@@ -362,3 +368,5 @@ void cIndyFurnace::test() {
     double dist[6] = { 0.2,0,0,0,0,0 };
     _indyTCP.MoveByT(dist);
 }
+
+#endif

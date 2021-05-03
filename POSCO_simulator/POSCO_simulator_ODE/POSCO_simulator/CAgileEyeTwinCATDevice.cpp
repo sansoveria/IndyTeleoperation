@@ -44,11 +44,18 @@
 
 //------------------------------------------------------------------------------
 #include "definitions.h"
-#include "CAgileEyeDevice.h"
+#include "CAgileEyeTwinCATDevice.h"
 
 #include "utils.h"
 
 
+#if defined(USE_AGILE_EYE) {
+#ifdef WIN64
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/x64/lib/TcAdsDll.lib" )
+#else
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/Lib/TcAdsDll.lib" )
+#endif
+#endif
 
 //------------------------------------------------------------------------------
 namespace chai3d {
@@ -61,7 +68,7 @@ namespace chai3d {
     Constructor of cMyCustomDevice.
 */
 //==============================================================================
-cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
+cAgileEyeTwinCATDevice::cAgileEyeTwinCATDevice(unsigned int a_deviceNumber)
 {
     // the connection to your device has not yet been established.
     m_deviceReady = false;
@@ -135,7 +142,7 @@ cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
     Destructor of cMyCustomDevice.
 */
 //==============================================================================
-cAgileEyeDevice::~cAgileEyeDevice()
+cAgileEyeTwinCATDevice::~cAgileEyeTwinCATDevice()
 {
     // close connection to device
     if (m_deviceReady)
@@ -161,7 +168,7 @@ cAgileEyeDevice::~cAgileEyeDevice()
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::open(){
+bool cAgileEyeTwinCATDevice::open(){
 
     // check if the system is available
     if (!m_deviceAvailable) {
@@ -229,7 +236,7 @@ bool cAgileEyeDevice::open(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::close(){
+bool cAgileEyeTwinCATDevice::close(){
     // check if the system has been opened previously
     if (!m_deviceReady) {
         printf("[AgileEye-close] Device is not opened\n");
@@ -266,7 +273,7 @@ bool cAgileEyeDevice::close(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
+bool cAgileEyeTwinCATDevice::calibrate(bool a_forceCalibration)
 {
     if (!m_deviceReady) return (C_ERROR);
 
@@ -310,7 +317,7 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-unsigned int cAgileEyeDevice::getNumDevices(){
+unsigned int cAgileEyeTwinCATDevice::getNumDevices(){  
 #if defined(USE_AGILE_EYE)
     unsigned int numberOfDevices = 1;  // At least set to 1 if a device is available.
 #else
@@ -330,7 +337,7 @@ unsigned int cAgileEyeDevice::getNumDevices(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getPosition(cVector3d& a_position)
+bool cAgileEyeTwinCATDevice::getPosition(cVector3d& a_position)
 {
     if (!m_deviceReady) return (C_ERROR);
 
@@ -367,7 +374,7 @@ void ceiling(double x, double y, double z, cMatrix3d& res) {
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
+bool cAgileEyeTwinCATDevice::getRotation(cMatrix3d& a_rotation){
     if (!m_deviceReady) return (C_ERROR);
        
     bool result = C_SUCCESS;
@@ -428,7 +435,7 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getGripperAngleRad(double& a_angle)
+bool cAgileEyeTwinCATDevice::getGripperAngleRad(double& a_angle)
 {
     if (!m_deviceReady) return (C_ERROR);
 
@@ -461,7 +468,7 @@ bool cAgileEyeDevice::getGripperAngleRad(double& a_angle)
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
+bool cAgileEyeTwinCATDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
                                                        const cVector3d& a_torque,
                                                        const double a_gripperForce)
 {
@@ -515,7 +522,7 @@ bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getUserSwitches(unsigned int& a_userSwitches)
+bool cAgileEyeTwinCATDevice::getUserSwitches(unsigned int& a_userSwitches)
 {
     if (!m_deviceReady) return (C_ERROR);
 

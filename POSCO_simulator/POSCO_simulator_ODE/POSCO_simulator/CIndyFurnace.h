@@ -4,6 +4,8 @@
 //---------------------------------------------------------------------------
 #ifndef CINDYFURNACE
 #define CINDYFURNACE
+
+#ifdef USE_INDY
 //---------------------------------------------------------------------------
 #include "chai3d.h"
 #include "CGenericFurnace.h"
@@ -309,5 +311,7 @@ private:    // member
 	cIndyTransform _indyCommand;
     int _indyCmode = 0;
 };
+
+#endif
 
 #endif	//	CFURNACE

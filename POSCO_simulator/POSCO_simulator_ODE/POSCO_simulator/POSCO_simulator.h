@@ -16,9 +16,12 @@ using namespace std;
 
 #include "definitions.h"
 
+#ifdef USE_INDY
 #include "cIndyFurnace.h"
+#else
 #include "cODEFurnace.h"
 #include "cBulletFurnace.h"
+#endif
 #include "CCustomFurnaceDevice.h"
 //---------------------------------------------------------------------------
 
