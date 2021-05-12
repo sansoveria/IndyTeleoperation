@@ -170,6 +170,8 @@
     <ClCompile Include="cBulletFurnace.cpp" />
     <ClCompile Include="CIndyFurnace.cpp" />
     <ClCompile Include="CODEFurnace.cpp" />
+    <ClCompile Include="CSerialComm.cpp" />
+    <ClCompile Include="CSerialPort.cpp" />
     <ClCompile Include="CustomIndyDCPClient.cpp" />
     <ClCompile Include="NRMK_IndyDCPClient.cpp" />
     <ClCompile Include="POSCO_simulator.cpp" />
@@ -185,6 +187,8 @@
     <ClInclude Include="CGenericFurnace.h" />
     <ClInclude Include="CIndyFurnace.h" />
     <ClInclude Include="CODEFurnace.h" />
+    <ClInclude Include="CSerialComm.h" />
+    <ClInclude Include="CSerialPort.h" />
     <ClInclude Include="CustomIndyDCPClient.h" />
     <ClInclude Include="definitions.h" />
     <ClInclude Include="NRMK_IndyDCPClient.h" />

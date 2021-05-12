@@ -21,6 +21,8 @@ using namespace std;
 #else
 #include "cODEFurnace.h"
 #include "cBulletFurnace.h"
+
+#include "CSerialComm.h"
 #endif
 #include "CCustomFurnaceDevice.h"
 //---------------------------------------------------------------------------

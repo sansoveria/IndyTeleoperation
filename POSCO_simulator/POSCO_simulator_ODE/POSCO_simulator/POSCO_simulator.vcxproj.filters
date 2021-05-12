@@ -48,6 +48,12 @@
     <ClCompile Include="CAgileEyeDevice.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="CSerialComm.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="CSerialPort.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CODEFurnace.h">
@@ -90,6 +96,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CAgileEyeDevice.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CSerialPort.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CSerialComm.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
