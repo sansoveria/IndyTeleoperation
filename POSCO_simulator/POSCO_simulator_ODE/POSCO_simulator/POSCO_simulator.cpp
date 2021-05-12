@@ -99,13 +99,16 @@ int main()
         hapticDevice = cCustomFurnaceDevice::create(0);
         if (hapticDevice->open()) {
             hapticDevice->close();
+            isHapticDeviceAvailable = true;
         }
-        isHapticDeviceAvailable = true;
+        else {
+            isHapticDeviceAvailable = false;
+        }
     }
     else {
         isHapticDeviceAvailable = false;
     }
-
+    printf("[isHapticDeviceAvailable] %d\n", isHapticDeviceAvailable);
     // retrieve information about the current haptic device
     if (isHapticDeviceAvailable) cHapticDeviceInfo hapticDeviceInfo = hapticDevice->m_specifications;
 
@@ -604,6 +607,9 @@ void updateUserInterface(void){
             }
 #endif
         } 
+        else {
+            commandActivate = true;
+        }
     }
 
     // exit haptics thread
@@ -663,6 +669,8 @@ void updateWorld(void){
 #endif
 
         // update position and orientation of tool
+        //printf("%.3f, %.3f, %.3f\n", inputCursorPosition(0), inputCursorPosition(1), inputCursorPosition(2));
+
         workspace->updateUserCommand(inputCursorPosition, inputCursorRotation, commandActivate);
         workspace->getForceTorqueSensorValue(sensorForce, sensorTorque);
         workspace->updateDynamics(nextSimInterval);

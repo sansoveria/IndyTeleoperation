@@ -5,7 +5,6 @@
 #define RETURN_SUCCESS 1
 #define RETURN_FAIL 0
 
-
 class CSerialComm
 {
 public:
@@ -17,7 +16,8 @@ public:
 	int		sendCommand(char pos);
 	int		receiveCommand(char* str, UINT size);
 	int		sendCommand(char* str, UINT size);
-	void		disconnect();
+	void	disconnect();
 	void	purgeconnect();
+
 };
 

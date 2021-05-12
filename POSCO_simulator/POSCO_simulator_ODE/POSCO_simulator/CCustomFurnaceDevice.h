@@ -46,7 +46,7 @@
 #define CCustomFurnaceDeviceH
 
 #include "devices/CDeltaDevices.h"
-#include "CAgileEyeTwinCATDevice.h"
+#include "CAgileEyeDevice.h"
 
 //------------------------------------------------------------------------------
 namespace chai3d {

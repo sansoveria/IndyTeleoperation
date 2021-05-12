@@ -389,6 +389,7 @@ void cODEFurnace::updateUserCommand(cVector3d posCommand, cMatrix3d rotCommand, 
     // gravity compensation
     cVector3d gravity = _furnaceWorld->getGravity();
     _endEffectorTool->addExternalForce(_endEffectorTool->getMass() * -gravity);
+
 }
 
 bool cODEFurnace::updateShadowMaps(const bool mirror_x, const bool mirror_y) {

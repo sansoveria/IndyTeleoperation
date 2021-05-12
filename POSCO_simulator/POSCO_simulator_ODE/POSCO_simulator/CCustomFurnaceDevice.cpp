@@ -78,9 +78,9 @@ namespace chai3d {
             printf("[CustomFurnaceDevice] Cannot find Falcon \n");
         }
 
-        count = cAgileEyeTwinCATDevice::getNumDevices();
+        count = cAgileEyeDevice::getNumDevices();
         if (count > 0) {
-            m_agileEye = cAgileEyeTwinCATDevice::create(0);
+            m_agileEye = cAgileEyeDevice::create(0);
             //m_agileEye = new cAgileEyeDevice(0);
             if (m_agileEye->open()) {
                 printf("[CustomFurnaceDevice] Found AgileEye \n");

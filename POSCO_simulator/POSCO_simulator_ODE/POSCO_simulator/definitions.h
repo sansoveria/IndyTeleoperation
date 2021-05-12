@@ -5,7 +5,7 @@
 //#define USE_INDY
 
 // MACRO for TwinCAT compilation
-//#define USE_AGILE_EYE
+#define USE_AGILE_EYE
 
 
 // MACRO for physics engine selection

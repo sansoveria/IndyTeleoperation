@@ -16,7 +16,6 @@ int CSerialComm::connect(char* portNum)
 }
 
 
-
 int CSerialComm::sendCommand(char pos) //데이터를 전송하는 함수
 {
 	if (serial.WriteByte(pos)) //WriteByte()를 통해 데이터 전송에 성공하면 SUCCESS, 실패하면 FAIL을 반환한다.
@@ -26,10 +25,6 @@ int CSerialComm::sendCommand(char pos) //데이터를 전송하는 함수
 }
 
 
-
-
-
-
 int CSerialComm::sendCommand(char* str, UINT size) //데이터를 전송하는 함수
 {
 	if (serial.WriteByte(str, size)) //WriteByte()를 통해 데이터 전송에 성공하면 SUCCESS, 실패하면 FAIL을 반환한다.
@@ -37,11 +32,6 @@ int CSerialComm::sendCommand(char* str, UINT size) //데이터를 전송하는 함수
 	else
 		return RETURN_FAIL;
 }
-
-
-
-
-
 
 
 int CSerialComm::receiveCommand(char* str, UINT size) //데이터를 수신하는 함수
@@ -54,10 +44,6 @@ int CSerialComm::receiveCommand(char* str, UINT size) //데이터를 수신하는 함수
 
 
 
-
-
-
-
 /*int CSerialComm::receiveCommand(BYTE*& resp, UINT size) //데이터를 수신하는 함수
 {
 	if (serial.ReadByte(resp, size)) //WriteByte()를 통해 데이터 전송에 성공하면 SUCCESS, 실패하면 FAIL을 반환한다.
@@ -65,10 +51,6 @@ int CSerialComm::receiveCommand(char* str, UINT size) //데이터를 수신하는 함수
 	else
 		return RETURN_FAIL;
 }*/
-
-
-
-
 
 
 

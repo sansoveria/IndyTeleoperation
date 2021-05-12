@@ -184,7 +184,7 @@ bool CSerialPort::ReadByte(char* str, UINT size)
 {
 	DWORD dwBytesTransferred = 0;
 
-	if (ReadFile(m_hComm, strings, size, &dwBytesTransferred, 0)) {
+	if (ReadFile(m_hComm, str, size, &dwBytesTransferred, 0)) {
 		return true;
 	}
 }

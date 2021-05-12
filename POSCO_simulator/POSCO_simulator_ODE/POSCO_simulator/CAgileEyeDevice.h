@@ -48,8 +48,7 @@
 #include "devices/CGenericHapticDevice.h"
 //------------------------------------------------------------------------------
 #if defined(USE_AGILE_EYE)
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsDef.h"
-#include "C:\TwinCAT\AdsApi\TcAdsDll\Include\TcAdsAPI.h"
+#include "CSerialComm.h"
 #endif
 //------------------------------------------------------------------------------
 
@@ -165,6 +164,8 @@ public:
     //! This method sends a force [N] and a torque [N*m] and gripper force [N] to the haptic device.
     virtual bool setForceAndTorqueAndGripperForce(const cVector3d& a_force, const cVector3d& a_torque, double a_gripperForce);
 
+    //! This method communicates with the haptic device.
+    virtual bool communicate();
 
     //--------------------------------------------------------------------------
     // PUBLIC STATIC METHODS:
@@ -191,59 +192,96 @@ public:
 
 protected:
 #if defined(USE_AGILE_EYE)
-	// Variables for TwinCAT ADS communication
-	long						nErr;						// Error Message
-	long						nPort;						// Port number
-	AmsAddr						Addr;						// Target port information(PLC1)
-
-	//INT32		m_motor1_zero_position, m_motor2_zero_position;
-	//cMatrix3d	m_Jacobian;
-	
-#define	INDEX_GROUP		0x1010010
-//#define	MOTOR1_ENABLE	0x81000000
-//#define	MOTOR1_ANGLE	0x81000000
-//#define	MOTOR1_TORQUE	0x81000000
-//#define	MOTOR2_ENABLE	0x81000000
-//#define	MOTOR2_ANGLE	0x81000000
-//#define	MOTOR2_TORQUE	0x81000000
-//
-//#define	ENABLE_MOTOR	0x000F
-//#define	DISABLE_MOTOR	0x0006
-
 #pragma pack(push, 1)
-    struct ADS_INPUT {
-        // variable order and size are important!
-        // TC INT == SHORT
-        // TC DINT == LONG / INT
-        // TC BOOL == bool
-        INT u;
-        INT v;
-        INT w;
-        INT angle1;         // degree * 1000
-        INT angle2;         // degree * 1000
-        INT angleZero1;     // incremental ticks
-        INT angleZero2;     // incremental ticks
-        bool motorState1;
-        bool motorState2;
+    struct MCU_INPUT {
+        unsigned int message_idx;
+        double u;
+        double v;
+        double w;
         bool calibrationFlag;
+
+        char message[30];
+
+        void parseMessage() {
+            char time_buf[6] = "";
+            char u_buf[6] = "";
+            char v_buf[6] = "";
+            char w_buf[6] = "";
+            char cal_flag_char[1] = "";
+            int u_int, v_int, w_int;
+
+            // index
+            for (int i = 0; i < 6; i++) {
+                time_buf[i] = message[i];
+            }
+
+            if (time_buf == "/0") time_buf[5] = 0;
+
+            message_idx = atoi(time_buf);
+
+            // u
+            for (int i = 0; i < 6; i++) {
+                u_buf[i] = message[i + 7];
+            }
+
+            if (u_buf == "/0") u_buf[5] = 0;
+            u_int = atoi(u_buf) - 50000;
+            u = double(u_int) / 1000.0;
+
+            // v
+            for (int i = 0; i < 6; i++) {
+                v_buf[i] = message[i + 14];
+            }
+
+            if (v_buf == "/0") v_buf[5] = 0;
+            v_int = atoi(v_buf) - 50000;
+            v = double(v_int) / 1000.0;
+
+            // w
+            for (int i = 0; i < 6; i++) {
+                w_buf[i] = message[i + 21];
+            }
+
+            if (w_buf == "/0") w_buf[5] = 0;
+            w_int = atoi(w_buf) - 50000;
+            w = double(w_int) / 1000.0;
+
+            // calFlag
+            cal_flag_char[0] = message[27];
+
+            if (cal_flag_char == "/0") cal_flag_char[0] = 0;
+            calibrationFlag = bool(atoi(cal_flag_char));
+        }
     };
 
-    struct ADS_OUTPUT {
-        // variable order and size are important!
-        // TC INT == SHORT
-        // TC DINT == LONG / INT
-        // TC BOOL == bool
-        INT tau1;           // Nm * 1000 (mNm)
-        INT tau2;           // Nm * 1000 (mNm)
-        INT tau3;           // Nm * 1000 (mNm)
-        bool enableMotor1;
-        bool enableMotor2;
+    struct MCU_OUTPUT {
+        unsigned int message_idx;
+        double tau1;
+        double tau2;
+        double tau3;
+        bool enableMotors;
         bool calibrationFlag;
+
+        char message[25];
+
+        void setMessage() {
+            message_idx++;
+
+            int m_idx_ = int(message_idx);
+            int enable_motors_ = int(enableMotors);
+            int tau1_ = int(tau1 * 1000.0) + 50000;
+            int tau2_ = int(tau2 * 1000.0) + 50000;
+            int tau3_ = int(tau3 * 1000.0) + 50000;
+            int calibration_flag_ = int(calibrationFlag);
+            sprintf_s(message, "%6.0d%1.0d%5.0d%5.0d%5.0d%1.0d", m_idx_, enable_motors_, tau1_, tau2_, tau3_, calibration_flag_);
+        }
     };
 #pragma pack(pop)
 
-    ADS_INPUT aInput;
-    ADS_OUTPUT aOutput;
+    CSerialComm serialComm;
+	
+    MCU_INPUT mcu_input;
+    MCU_OUTPUT mcu_output;
 
 #endif
 };

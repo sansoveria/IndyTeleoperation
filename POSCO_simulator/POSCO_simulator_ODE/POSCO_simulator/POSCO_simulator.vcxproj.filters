@@ -42,9 +42,6 @@
     <ClCompile Include="NRMK_IndyDCPClient.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="CAgileEyeTwinCATDevice.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="CAgileEyeDevice.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -90,9 +87,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="NRMK_IndyDCPClient.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="CAgileEyeTwinCATDevice.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CAgileEyeDevice.h">
