@@ -519,7 +519,7 @@ void updateUserInterface(void){
         // retrieve simulation time and compute next interval
         double time = userInterfaceClock.getCurrentTimeSeconds();
         
-        if (time < 0.002) {
+        if (time < 0.001) {
             continue;
         }
 
@@ -535,7 +535,7 @@ void updateUserInterface(void){
             cMatrix3d deviceRotation;
             if (hapticDevice->getPosition(devicePosition) && hapticDevice->getRotation(deviceRotation)) {
                 devicePosition.mul(workspaceScaleFactor);
-            }
+            };
             unsigned int deviceSwitch;
             hapticDevice->getUserSwitches(deviceSwitch);
 

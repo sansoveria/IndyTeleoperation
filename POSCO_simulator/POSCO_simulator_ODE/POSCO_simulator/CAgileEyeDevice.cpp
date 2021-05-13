@@ -163,7 +163,7 @@ bool cAgileEyeDevice::open(){
     mcu_output.enableMotors = true;
     printf("aInput size: %d, aOutput size: %d \n", sizeof(MCU_INPUT), sizeof(MCU_OUTPUT));
 
-    char portname[255] = "COM4";
+    char portname[255] = "//./COM4";
     if (!serialComm.connect(portname)){
         cout << "[AGILE_EYE-open] serial port connection faliled" << endl;     
         return (C_ERROR);
@@ -179,24 +179,35 @@ bool cAgileEyeDevice::open(){
     }
 
     m_deviceReady = false;    
-    for (int i = 0; i < 50; i++) {
-        if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-            printf("[AGILE_EYE-open] Error: reading message Failed\n");
-        }
-        mcu_input.parseMessage();
-        if (mcu_input.message_idx == mcu_output.message_idx) {
-            m_deviceReady = true;
-            return (C_SUCCESS);
-        }
-        serialComm.purgeconnect();
+    //for (int i = 0; i < 50; i++) {
+    //    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
+    //        printf("[AGILE_EYE-open] Error: reading message Failed\n");
+    //    }
+    //    mcu_input.parseMessage();
+    //    if (mcu_input.message_idx == mcu_output.message_idx) {
+    //        m_deviceReady = true;
+    //        return (C_SUCCESS);
+    //    }
+    //    serialComm.purgeconnect();
 
-        mcu_output.setMessage();
-        if (!serialComm.sendCommand(mcu_output.message, 26)) {
-            printf("[AGILE_EYE-open] Error: sending message Failed\n");
-        }
+    //    mcu_output.setMessage();
+    //    if (!serialComm.sendCommand(mcu_output.message, 26)) {
+    //        printf("[AGILE_EYE-open] Error: sending message Failed\n");
+    //    }
+    //}
+    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
+        printf("[AGILE_EYE-open] Error: reading message Failed\n");
+        return (C_ERROR);
     }
+    mcu_input.parseMessage();
+    //if (mcu_input.message_idx == mcu_output.message_idx) {
+    //    m_deviceReady = true;
+    //    return (C_SUCCESS);
+    //}
+    m_deviceReady = true;
+    serialComm.purgeconnect();
 #endif
-	return (C_ERROR);
+	return (C_SUCCESS);
 }
 
 
@@ -213,7 +224,7 @@ bool cAgileEyeDevice::close(){
         printf("[AgileEye-close] Device is not opened\n");
         return (C_ERROR);
     }
-
+    printf("[AgileEye-close] Device is closed\n");
     bool result = C_SUCCESS; // if the operation fails, set value to C_ERROR.
 
 #if defined(USE_AGILE_EYE)
@@ -270,13 +281,14 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
         printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
         return (C_ERROR);
     }
-    serialComm.purgeconnect();
+    
     if (!serialComm.receiveCommand(mcu_input.message, 30)) {
         printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
         return (C_ERROR);
     }
     mcu_input.parseMessage();
-    
+    serialComm.purgeconnect();
+
     mcu_output.enableMotors = true;
     mcu_output.setMessage();
     if (!serialComm.sendCommand(mcu_output.message, 26)) {
@@ -298,11 +310,12 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
         printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
         return (C_ERROR);
     }
-    serialComm.purgeconnect();
+    
     if (!serialComm.receiveCommand(mcu_input.message, 30)) {
         printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
         return (C_ERROR);
     }
+    serialComm.purgeconnect();
     mcu_input.parseMessage();
 #endif
 
@@ -365,22 +378,6 @@ void ceiling(double x, double y, double z, cMatrix3d& res) {
     res.set(0, -z, y, z, 0, -x, -y, x, 0);
 }
 
-bool cAgileEyeDevice::communicate() {
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
-        return (C_ERROR);
-    }
-    serialComm.purgeconnect();
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    mcu_input.parseMessage();
-
-    return C_SUCCESS;
-}
-
 //==============================================================================
 /*!
     This method returns the orientation frame of your device end-effector
@@ -396,21 +393,18 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
     bool result = C_SUCCESS;
 
 #if defined(USE_AGILE_EYE)
+
     mcu_output.setMessage();
     if (!serialComm.sendCommand(mcu_output.message, 26)) {
         printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
         return (C_ERROR);
     }
-    serialComm.purgeconnect();
     if (!serialComm.receiveCommand(mcu_input.message, 30)) {
         printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
         return (C_ERROR);
     }
     mcu_input.parseMessage();
-    if (mcu_input.message_idx != mcu_output.message_idx) {
-        printf("[AGILE_EYE-calibrate] Error: message does not match\n");
-        return (C_ERROR);
-    }
+    serialComm.purgeconnect();
 
     double axis1, axis2, axis3, angle;
     angle = sqrt(mcu_input.u * mcu_input.u + mcu_input.v * mcu_input.v + mcu_input.w * mcu_input.w);

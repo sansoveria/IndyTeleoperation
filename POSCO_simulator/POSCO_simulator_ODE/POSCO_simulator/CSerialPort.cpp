@@ -145,7 +145,7 @@ bool CSerialPort::WriteByte(char* str, UINT size)
 
 	//char Str[] = "Example text testing WriteFile";
 	if (WriteFile(m_hComm, str, size, &dwBytesTransferred, NULL)) {
-		cout << "Sending Bytes : " << dwBytesTransferred << endl;
+		//cout << "Sending Bytes : " << dwBytesTransferred << endl;
 		return true;
 	}
 

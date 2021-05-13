@@ -238,6 +238,7 @@ namespace chai3d {
         }
     }
 
+
     //==============================================================================
     /*!
         This method returns the position of your device. Units are meters [m].

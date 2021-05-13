@@ -164,8 +164,6 @@ public:
     //! This method sends a force [N] and a torque [N*m] and gripper force [N] to the haptic device.
     virtual bool setForceAndTorqueAndGripperForce(const cVector3d& a_force, const cVector3d& a_torque, double a_gripperForce);
 
-    //! This method communicates with the haptic device.
-    virtual bool communicate();
 
     //--------------------------------------------------------------------------
     // PUBLIC STATIC METHODS:
@@ -225,7 +223,7 @@ protected:
             }
 
             if (u_buf == "/0") u_buf[5] = 0;
-            u_int = atoi(u_buf) - 50000;
+            u_int = atoi(u_buf) - 120000;
             u = double(u_int) / 1000.0;
 
             // v
@@ -234,7 +232,7 @@ protected:
             }
 
             if (v_buf == "/0") v_buf[5] = 0;
-            v_int = atoi(v_buf) - 50000;
+            v_int = atoi(v_buf) - 120000;
             v = double(v_int) / 1000.0;
 
             // w
@@ -243,9 +241,9 @@ protected:
             }
 
             if (w_buf == "/0") w_buf[5] = 0;
-            w_int = atoi(w_buf) - 50000;
+            w_int = atoi(w_buf) - 120000;
             w = double(w_int) / 1000.0;
-
+            //printf("%.3f,%.3f,%.3f\n", u, v, w);
             // calFlag
             cal_flag_char[0] = message[27];
 
