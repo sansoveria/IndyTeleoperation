@@ -1,0 +1,24 @@
+../../../chai3D-master/chai3D-master/modules/ODE/src
+../../../chai3D-master/chai3D-master/modules/ODE/external/ODE/include
+../../../chai3D-master/chai3D-master/modules/BULLET/src
+../../../chai3D-master/chai3D-master/modules/BULLET/external/BULLET/src
+../../../chai3D-master/chai3D-master/src
+../../../chai3D-master/chai3D-master/external/Eigen
+../../../chai3D-master/chai3D-master/external/glew/include
+../../../chai3D-master/chai3D-master/extras/glfw/include
+C:\Program Files (x86)\Intel RealSense SDK 2.0\include
+C:\Program Files (x86)\Intel RealSense SDK 2.0\samples
+
+../../../chai3D-master/chai3D-master/modules/ODE/lib/$(Configuration)/$(Platform)
+../../../chai3D-master/chai3D-master/modules/BULLET/lib/$(Configuration)/$(Platform)
+../../../chai3D-master/chai3D-master/lib/$(Configuration)/$(Platform)
+../../../chai3D-master/chai3D-master/extras/glfw/lib/$(Configuration)/$(Platform)
+C:\Program Files (x86)\Intel RealSense SDK 2.0\lib\$(PlatformShortName)
+
+glfw.lib
+OpenGL32.lib
+glu32.lib
+chai3d.lib
+chai3d-ODE.lib
+chai3d-BULLET.lib
+realsense2.lib

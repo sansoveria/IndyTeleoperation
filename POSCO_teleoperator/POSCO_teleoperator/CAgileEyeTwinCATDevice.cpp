@@ -44,11 +44,18 @@
 
 //------------------------------------------------------------------------------
 #include "definitions.h"
-#include "CAgileEyeDevice.h"
+#include "CAgileEyeTwinCATDevice.h"
 
 #include "utils.h"
 
 
+#if defined(USE_AGILE_EYE) {
+#ifdef WIN64
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/x64/lib/TcAdsDll.lib" )
+#else
+#   pragma comment( lib, "C:/TwinCAT/AdsApi/TcAdsDll/Lib/TcAdsDll.lib" )
+#endif
+#endif
 
 //------------------------------------------------------------------------------
 namespace chai3d {
@@ -61,7 +68,7 @@ namespace chai3d {
     Constructor of cMyCustomDevice.
 */
 //==============================================================================
-cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
+cAgileEyeTwinCATDevice::cAgileEyeTwinCATDevice(unsigned int a_deviceNumber)
 {
     // the connection to your device has not yet been established.
     m_deviceReady = false;
@@ -98,8 +105,32 @@ cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
 
 
 #if defined(USE_AGILE_EYE){
-    // TODO: check available ports
-    m_deviceAvailable = C_SUCCESS;
+    nPort = AdsPortOpen();
+    nErr = AdsGetLocalAddress(&Addr);
+    if (nErr) {
+        printf("[AGILE_EYE] AdsGetLocalAddress Error: %d\n", nErr);
+        m_deviceAvailable = C_ERROR;
+    }
+    else {
+        printf("[AGILE_EYE] ADS Port Opened \n");
+        m_deviceAvailable = C_SUCCESS;
+    }
+
+    // TwinCAT 3 Module Port = 350
+    (&Addr)->port = 350;
+
+    // Initialize motor status
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    aOutput.calibrationFlag = false;
+    aOutput.tau1 = 0;
+    aOutput.tau2 = 0;
+    aOutput.tau3 = 0;
+
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 #else
     m_deviceAvailable = C_SUCCESS;
 #endif
@@ -111,7 +142,7 @@ cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
     Destructor of cMyCustomDevice.
 */
 //==============================================================================
-cAgileEyeDevice::~cAgileEyeDevice()
+cAgileEyeTwinCATDevice::~cAgileEyeTwinCATDevice()
 {
     // close connection to device
     if (m_deviceReady)
@@ -119,7 +150,13 @@ cAgileEyeDevice::~cAgileEyeDevice()
         close();
     }
 #if defined(USE_AGILE_EYE)
-    // TODO: remove new objects if they are created.
+    nErr = AdsPortClose();
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: ADS Port Close Error: %d\n", nErr);
+    }
+    else {
+        printf("[AGILE_EYE] ADS Port Closed \n");
+    }
 #endif
 }
 
@@ -131,7 +168,7 @@ cAgileEyeDevice::~cAgileEyeDevice()
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::open(){
+bool cAgileEyeTwinCATDevice::open(){
 
     // check if the system is available
     if (!m_deviceAvailable) {
@@ -147,67 +184,48 @@ bool cAgileEyeDevice::open(){
 
   
 #if defined(USE_AGILE_EYE)
-    mcu_input.calibrationFlag = false;
-    mcu_input.u = 0;
-    mcu_input.v = 0;
-    mcu_input.w = 0;
-    mcu_input.message_idx = 0;
+    // reset ADS communication variable
+    aInput.angle1 = 0;
+    aInput.angle2 = 0;
+    aInput.angleZero1 = 0;
+    aInput.angleZero2 = 0;
+    aInput.calibrationFlag = false;
+    aInput.motorState1 = false;
+    aInput.motorState2 = false;
+    aInput.u = 0;
+    aInput.v = 0;
+    aInput.w = 0;
 
-    mcu_output.calibrationFlag = false;
-    mcu_output.enableMotors = false;
-    mcu_output.tau1 = 0;
-    mcu_output.tau2 = 0;
-    mcu_output.tau3 = 0;
-    mcu_output.message_idx = 0;
+    aOutput.calibrationFlag = false;
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    aOutput.tau1 = 0;
+    aOutput.tau2 = 0;
+    aOutput.tau3 = 0;
 
-    mcu_output.enableMotors = true;
-    printf("aInput size: %d, aOutput size: %d \n", sizeof(MCU_INPUT), sizeof(MCU_OUTPUT));
-
-    char portname[255] = AGILE_EYE_COM_PORT;
-    if (!serialComm.connect(portname)){
-        cout << "[AGILE_EYE-open] serial port connection faliled" << endl;     
-        return (C_ERROR);
-    }
-    else{
-        cout << "[AGILE_EYE-open] serial port connected" << endl;
-    }
-
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-open] Error: sending message Failed\n");
-        return (C_ERROR);
+    aOutput.enableMotor1 = true;
+    aOutput.enableMotor2 = true;
+    printf("aInput size: %d, aOutput size: %d \n", sizeof(ADS_INPUT), sizeof(ADS_OUTPUT));
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
     }
 
-    m_deviceReady = false;    
-    //for (int i = 0; i < 50; i++) {
-    //    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-    //        printf("[AGILE_EYE-open] Error: reading message Failed\n");
-    //    }
-    //    mcu_input.parseMessage();
-    //    if (mcu_input.message_idx == mcu_output.message_idx) {
-    //        m_deviceReady = true;
-    //        return (C_SUCCESS);
-    //    }
-    //    serialComm.purgeconnect();
+    m_deviceReady = false;
+    for (int i = 0; i < 50; i++) {
+        nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+        if (nErr != 0) {
+            printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+        }
 
-    //    mcu_output.setMessage();
-    //    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-    //        printf("[AGILE_EYE-open] Error: sending message Failed\n");
-    //    }
-    //}
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-open] Error: reading message Failed\n");
-        return (C_ERROR);
+        m_deviceReady = aInput.motorState1 && aInput.motorState2;
+        printf("angle1: %d, angle2: %d \n", aInput.angle1, aInput.angle2);
+        if (!aInput.motorState1) printf("[AGILE_EYE] Trial %d, Failed to enable motor1\n", i);
+        if (!aInput.motorState2) printf("[AGILE_EYE] Trial %d, Failed to enable motor2\n", i);
+        if (m_deviceReady) break;
     }
-    mcu_input.parseMessage();
-    //if (mcu_input.message_idx == mcu_output.message_idx) {
-    //    m_deviceReady = true;
-    //    return (C_SUCCESS);
-    //}
-    m_deviceReady = true;
-    serialComm.purgeconnect();
 #endif
-	return (C_SUCCESS);
+	return m_deviceReady;
 }
 
 
@@ -218,37 +236,28 @@ bool cAgileEyeDevice::open(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::close(){
+bool cAgileEyeTwinCATDevice::close(){
     // check if the system has been opened previously
     if (!m_deviceReady) {
         printf("[AgileEye-close] Device is not opened\n");
         return (C_ERROR);
     }
-    printf("[AgileEye-close] Device is closed\n");
+
     bool result = C_SUCCESS; // if the operation fails, set value to C_ERROR.
 
 #if defined(USE_AGILE_EYE)
-    mcu_output.tau1 = LONG(0);
-    mcu_output.tau2 = LONG(0);
-    mcu_output.tau3 = LONG(0);
-    mcu_output.enableMotors = false;
+    aOutput.tau1 = LONG(0);
+    aOutput.tau2 = LONG(0);
+    aOutput.tau3 = LONG(0);
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
 
-    mcu_output.setMessage();
-
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-close] Error: sending message Failed\n");
-        return (C_ERROR);
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+        result = C_ERROR;
     }
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-close] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    mcu_input.parseMessage();
-    serialComm.purgeconnect();
-
-    serialComm.disconnect();
 #endif
-
 
     // update status
     m_deviceReady = false;
@@ -264,62 +273,40 @@ bool cAgileEyeDevice::close(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
+bool cAgileEyeTwinCATDevice::calibrate(bool a_forceCalibration)
 {
     if (!m_deviceReady) return (C_ERROR);
 
     bool result = false;
 #if defined(USE_AGILE_EYE)
 	// disable and enable motors (reset motors)
-    mcu_output.tau1 = LONG(0);
-    mcu_output.tau2 = LONG(0);
-    mcu_output.tau3 = LONG(0);
-    mcu_output.enableMotors = false;
+    aOutput.enableMotor1 = false;
+    aOutput.enableMotor2 = false;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[TC:ADS] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+    }
 
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
-        return (C_ERROR);
+    aOutput.enableMotor1 = true;
+    aOutput.enableMotor2 = true;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
     }
-    
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    mcu_input.parseMessage();
-    serialComm.purgeconnect();
 
-    mcu_output.enableMotors = true;
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
-        return (C_ERROR);
-    }
-    serialComm.purgeconnect();
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    mcu_input.parseMessage();
-    
     // set zero angle
-    if (mcu_output.calibrationFlag) mcu_output.calibrationFlag = false;
-    else mcu_output.calibrationFlag = true;
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
-        return (C_ERROR);
+    if (aOutput.calibrationFlag) aOutput.calibrationFlag = false;
+    else aOutput.calibrationFlag = true;
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
     }
-    
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    serialComm.purgeconnect();
-    mcu_input.parseMessage();
+
+    if (abs(aInput.angle1) < 50 && abs(aInput.angle2) < 50) return (C_SUCCESS);
+    else return (C_ERROR);
 #endif
 
-    return C_SUCCESS;
+    return result;
 }
 
 
@@ -330,7 +317,7 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-unsigned int cAgileEyeDevice::getNumDevices(){
+unsigned int cAgileEyeTwinCATDevice::getNumDevices(){  
 #if defined(USE_AGILE_EYE)
     unsigned int numberOfDevices = 1;  // At least set to 1 if a device is available.
 #else
@@ -350,7 +337,7 @@ unsigned int cAgileEyeDevice::getNumDevices(){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getPosition(cVector3d& a_position)
+bool cAgileEyeTwinCATDevice::getPosition(cVector3d& a_position)
 {
     if (!m_deviceReady) return (C_ERROR);
 
@@ -387,30 +374,44 @@ void ceiling(double x, double y, double z, cMatrix3d& res) {
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
+bool cAgileEyeTwinCATDevice::getRotation(cMatrix3d& a_rotation){
     if (!m_deviceReady) return (C_ERROR);
        
     bool result = C_SUCCESS;
 
 #if defined(USE_AGILE_EYE)
+    nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+        return (C_ERROR);
+    }
 
-    mcu_output.setMessage();
-    if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
-        return (C_ERROR);
+    if (!aInput.motorState1 || !aInput.motorState2) {
+        printf("[AGILE_EYE] Motor state is not ready \n");
+        m_deviceReady = false;
+
+        printf("[AGILE_EYE] restore loop start\n");
+        for (int i = 0; i < 30; i++) {
+            nErr = AdsSyncReadReq(&Addr, 0x1010010, 0x82000000, sizeof(ADS_INPUT), &aInput);
+            if (nErr != 0) {
+                printf("[AGILE_EYE] Error: AdsSyncReadReq Failed: %d\n", nErr);
+            }
+
+            m_deviceReady = aInput.motorState1 && aInput.motorState2;
+            if (!aInput.motorState1) printf("[AGILE_EYE] Trial %d, Failed to enable motor1\n", i);
+            if (!aInput.motorState2) printf("[AGILE_EYE] Trial %d, Failed to enable motor2\n", i);
+            if (m_deviceReady) break;
+        }
+        printf("[AGILE_EYE] restore loop end\n");
+
+        return C_ERROR;
     }
-    if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
-        return (C_ERROR);
-    }
-    mcu_input.parseMessage();
-    serialComm.purgeconnect();
 
     double axis1, axis2, axis3, angle;
-    angle = sqrt(mcu_input.u * mcu_input.u + mcu_input.v * mcu_input.v + mcu_input.w * mcu_input.w);
-    axis1 = mcu_input.u;
-    axis2 = mcu_input.v;
-    axis3 = mcu_input.w;
+    angle = sqrt(aInput.u * aInput.u + aInput.v * aInput.v + aInput.w * aInput.w)/1000.0;
+    axis1 = aInput.u / 1000.0;
+    axis2 = aInput.v / 1000.0;
+    axis3 = aInput.w / 1000.0;
     if (angle > 0) {
         a_rotation.setAxisAngleRotationRad(cVector3d(axis1, axis2, axis3), angle);
     }
@@ -434,7 +435,7 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getGripperAngleRad(double& a_angle)
+bool cAgileEyeTwinCATDevice::getGripperAngleRad(double& a_angle)
 {
     if (!m_deviceReady) return (C_ERROR);
 
@@ -467,7 +468,7 @@ bool cAgileEyeDevice::getGripperAngleRad(double& a_angle)
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
+bool cAgileEyeTwinCATDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
                                                        const cVector3d& a_torque,
                                                        const double a_gripperForce)
 {
@@ -497,9 +498,15 @@ bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     // setForceToMyDevice(fx, fy, fz);
     // setForceToGripper(fg);
 #if defined(USE_AGILE_EYE)
-    mcu_output.tau1 = tx;
-    mcu_output.tau2 = ty;
-    mcu_output.tau3 = tz;
+    aOutput.tau1 = INT(tx * 1000);
+    aOutput.tau2 = INT(ty * 1000);
+    aOutput.tau3 = INT(tz * 1000);
+
+    nErr = AdsSyncWriteReq(&Addr, 0x1010010, 0x83000000, sizeof(ADS_OUTPUT), &aOutput);
+    if (nErr != 0) {
+        printf("[AGILE_EYE] Error: AdsSyncWriteReq Failed: %d\n", nErr);
+        return C_ERROR;
+    }
 #endif
     return C_SUCCESS;
 }
@@ -515,7 +522,7 @@ bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
     \return __true__ if the operation succeeds, __false__ otherwise.
 */
 //==============================================================================
-bool cAgileEyeDevice::getUserSwitches(unsigned int& a_userSwitches)
+bool cAgileEyeTwinCATDevice::getUserSwitches(unsigned int& a_userSwitches)
 {
     if (!m_deviceReady) return (C_ERROR);
 

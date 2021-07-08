@@ -96,13 +96,8 @@ cAgileEyeDevice::cAgileEyeDevice(unsigned int a_deviceNumber)
     m_specifications.m_leftHand                      = true;
     m_specifications.m_rightHand                     = true;
 
+    m_deviceAvailable = C_SUCCESS;
 
-#if defined(USE_AGILE_EYE){
-    // TODO: check available ports
-    m_deviceAvailable = C_SUCCESS;
-#else
-    m_deviceAvailable = C_SUCCESS;
-#endif
 }
 
 
@@ -118,9 +113,6 @@ cAgileEyeDevice::~cAgileEyeDevice()
     {
         close();
     }
-#if defined(USE_AGILE_EYE)
-    // TODO: remove new objects if they are created.
-#endif
 }
 
 
@@ -146,7 +138,6 @@ bool cAgileEyeDevice::open(){
     }
 
   
-#if defined(USE_AGILE_EYE)
     mcu_input.calibrationFlag = false;
     mcu_input.u = 0;
     mcu_input.v = 0;
@@ -163,7 +154,7 @@ bool cAgileEyeDevice::open(){
     mcu_output.enableMotors = true;
     printf("aInput size: %d, aOutput size: %d \n", sizeof(MCU_INPUT), sizeof(MCU_OUTPUT));
 
-    char portname[255] = AGILE_EYE_COM_PORT;
+    char portname[255] = "//./COM4";
     if (!serialComm.connect(portname)){
         cout << "[AGILE_EYE-open] serial port connection faliled" << endl;     
         return (C_ERROR);
@@ -206,8 +197,8 @@ bool cAgileEyeDevice::open(){
     //}
     m_deviceReady = true;
     serialComm.purgeconnect();
-#endif
-	return (C_SUCCESS);
+
+    return (C_SUCCESS);
 }
 
 
@@ -227,7 +218,6 @@ bool cAgileEyeDevice::close(){
     printf("[AgileEye-close] Device is closed\n");
     bool result = C_SUCCESS; // if the operation fails, set value to C_ERROR.
 
-#if defined(USE_AGILE_EYE)
     mcu_output.tau1 = LONG(0);
     mcu_output.tau2 = LONG(0);
     mcu_output.tau3 = LONG(0);
@@ -247,8 +237,6 @@ bool cAgileEyeDevice::close(){
     serialComm.purgeconnect();
 
     serialComm.disconnect();
-#endif
-
 
     // update status
     m_deviceReady = false;
@@ -269,7 +257,6 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
     if (!m_deviceReady) return (C_ERROR);
 
     bool result = false;
-#if defined(USE_AGILE_EYE)
 	// disable and enable motors (reset motors)
     mcu_output.tau1 = LONG(0);
     mcu_output.tau2 = LONG(0);
@@ -317,7 +304,6 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
     }
     serialComm.purgeconnect();
     mcu_input.parseMessage();
-#endif
 
     return C_SUCCESS;
 }
@@ -331,11 +317,7 @@ bool cAgileEyeDevice::calibrate(bool a_forceCalibration)
 */
 //==============================================================================
 unsigned int cAgileEyeDevice::getNumDevices(){
-#if defined(USE_AGILE_EYE)
     unsigned int numberOfDevices = 1;  // At least set to 1 if a device is available.
-#else
-    unsigned int numberOfDevices = 0;
-#endif
 
     return (numberOfDevices);
 }
@@ -392,15 +374,13 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
        
     bool result = C_SUCCESS;
 
-#if defined(USE_AGILE_EYE)
-
     mcu_output.setMessage();
     if (!serialComm.sendCommand(mcu_output.message, 26)) {
-        printf("[AGILE_EYE-calibrate] Error: sending message Failed\n");
+        printf("[AGILE_EYE-getRotation] Error: sending message Failed\n");
         return (C_ERROR);
     }
     if (!serialComm.receiveCommand(mcu_input.message, 30)) {
-        printf("[AGILE_EYE-calibrate] Error: reading message Failed\n");
+        printf("[AGILE_EYE-getRotation] Error: reading message Failed\n");
         return (C_ERROR);
     }
     mcu_input.parseMessage();
@@ -419,7 +399,7 @@ bool cAgileEyeDevice::getRotation(cMatrix3d& a_rotation){
     }
 
     a_rotation = cMul(rotateX(M_PI/2.0), a_rotation);
-#endif
+
     // exit
     return (result);
 }
@@ -496,11 +476,10 @@ bool cAgileEyeDevice::setForceAndTorqueAndGripperForce(const cVector3d& a_force,
 	//////////////////// PASS FOR THIS DEVICE /////////////////////
     // setForceToMyDevice(fx, fy, fz);
     // setForceToGripper(fg);
-#if defined(USE_AGILE_EYE)
     mcu_output.tau1 = tx;
     mcu_output.tau2 = ty;
     mcu_output.tau3 = tz;
-#endif
+
     return C_SUCCESS;
 }
 

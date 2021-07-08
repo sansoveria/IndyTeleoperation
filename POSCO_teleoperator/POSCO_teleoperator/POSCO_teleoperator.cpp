@@ -1,6 +1,6 @@
 #pragma once
 
-#include "POSCO_simulator.h"
+#include "POSCO_teleoperator.h"
 //#include "utils.h"
 
 int main() 
@@ -73,15 +73,9 @@ int main()
     //-----------------------------------------------------------------------
     // SIMULATION ENVIRONMENT
     //-----------------------------------------------------------------------
-#if defined(USE_INDY)
+
     workspace = new cIndyFurnace();
-#else
-#if defined(USE_ODE)
-	workspace = new cODEFurnace();
-#elif defined(USE_BULLET)
-    workspace = new cBulletFurnace();
-#endif
-#endif
+
     inputCursorPosition = cVector3d(INITIAL_CURSOR_POS_X, INITIAL_CURSOR_POS_Y, INITIAL_CURSOR_POS_Z);
     inputCursorRotation = rotateZ(M_PI);
     workspace->setEndEffectorPose(cVector3d(INITIAL_CURSOR_POS_X, INITIAL_CURSOR_POS_Y, INITIAL_CURSOR_POS_Z), inputCursorRotation);
@@ -275,6 +269,7 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
 
     else if (a_key == GLFW_KEY_M) {
         teleoperationMode = !teleoperationMode;
+        printf("%d\n", teleoperationMode);
     }
 
     else if (a_key == GLFW_KEY_C) {
@@ -283,18 +278,18 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
         }
     }
 
-#ifdef USE_INDY
-    else if (a_key == GLFW_KEY_O) {
-        workspace->switchCameraMode();
-    }
-
     else if (a_key == GLFW_KEY_R) {
         workspace->moveRobotHome();
     }
 
     else if (a_key == GLFW_KEY_T) {
-        workspace->toggleDirectTeachingMode();
+        workspace->startDirectTeachingMode();
     }
+
+    else if (a_key == GLFW_KEY_Y) {
+        workspace->stopDirectTeachingMode();
+    }
+
 
     else if (a_key == GLFW_KEY_Z) {
         workspace->moveRobotZero();
@@ -303,7 +298,7 @@ void keyCallback(GLFWwindow* a_window, int a_key, int a_scancode, int a_action, 
     else if (a_key == GLFW_KEY_P) {
         workspace->test();
     }
-#endif
+
     else if (a_key == GLFW_KEY_W) {
         if (!teleoperationMode) {
             workspace->moveCamera(cameraMovementStepSize * cVector3d(1.0, 0.0, 0.0));
@@ -538,7 +533,7 @@ void updateUserInterface(void){
             };
             unsigned int deviceSwitch;
             hapticDevice->getUserSwitches(deviceSwitch);
-            //printf("%d\n", deviceSwitch);
+
             if (deviceSwitch == 8) {
                 if (!isButtonPressed) {
                     // set device zero pose
@@ -563,7 +558,6 @@ void updateUserInterface(void){
             inputCursorPosition = deviceZeroPosition + devicePosition;
             inputCursorRotation = cMul(deviceRotation, deviceZeroRotation);
 
-#ifdef USE_INDY
             double maxRenderForce = 5.0;
             double maxRenderTorque = 0.05;
             renderForce = sensorForce * 3.0;
@@ -584,28 +578,6 @@ void updateUserInterface(void){
                 hapticDevice->setForceAndTorqueAndGripperForce(cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), 0.0);
             }
             //hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
-#else
-            double maxRenderForce = 4.0;
-            double maxRenderTorque = 0.05;
-            renderForce = sensorForce * 1.0;
-            renderTorque = sensorTorque * 0.04;
-
-            if (renderForce.length() > maxRenderForce) {
-                renderForce = renderForce / renderForce.length() * maxRenderForce;
-            }
-            if (renderTorque.length() > maxRenderTorque) {
-                renderTorque = renderTorque / renderTorque.length() * maxRenderTorque;
-            }
-
-            if (commandActivate) {
-                //printf("%.3f, %.3f, %.3f\n", renderTorque(0), renderTorque(1), renderTorque(2));
-                hapticDevice->setForceAndTorqueAndGripperForce(renderForce, renderTorque, 0.0);
-            }
-            else {
-                //printf("%.3f, %.3f, %.3f\n", renderTorque(0), renderTorque(1), renderTorque(2));
-                hapticDevice->setForceAndTorqueAndGripperForce(cVector3d(0.0, 0.0, 0.0), cVector3d(0.0, 0.0, 0.0), 0.0);
-            }
-#endif
         } 
         else {
             commandActivate = true;
@@ -655,7 +627,6 @@ void updateWorld(void){
         // compute global reference frames for each object
         workspace->computeGlobalPositions(true);
 
-#ifdef USE_INDY
         if (commandActivate) {
             if (workspace->getRobotControlMode() != 20) {
                 workspace->startTeleoperationMode();
@@ -666,7 +637,7 @@ void updateWorld(void){
                 workspace->quitTeleoperationMode();
             }
         }
-#endif
+
 
         // update position and orientation of tool
         //printf("%.3f, %.3f, %.3f\n", inputCursorPosition(0), inputCursorPosition(1), inputCursorPosition(2));
@@ -674,89 +645,6 @@ void updateWorld(void){
         workspace->updateUserCommand(inputCursorPosition, inputCursorRotation, commandActivate);
         workspace->getForceTorqueSensorValue(sensorForce, sensorTorque);
         workspace->updateDynamics(nextSimInterval);
-
-
-#ifdef USE_INDY
-        //// check simulation rule
-        //int res = workspace->checkSimulationRule();
-        //if (res > 0) {
-        //    printf("Demonstration succeeded (%d)\n", res);
-
-        //    panelMessage = new cPanel();
-        //    panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
-        //    panelMessage->setTransparencyLevel(0.8);
-        //    panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
-        //    panelMessage->setSize(width, height * 0.2);
-        //    panelMessage->setLocalPos(0, height * 0.4);
-        //    workspace->addVisualComponent(panelMessage);
-
-        //    cFontPtr font = NEW_CFONTCALIBRI20();
-        //    labelMessage = new cLabel(font);
-        //    labelMessage->m_fontColor.setWhite();
-
-        //    labelMessage->setText("Demonstration succeeded.");
-        //    labelMessage->setFontScale(1.5 / 500.0 * height);
-        //    labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
-
-        //    workspace->addVisualComponent(labelMessage);
-        //    worldRunning = false;
-        //}
-#else
-        // check simulation rule
-        int res = workspace->checkSimulationRule();
-        if (res > 0) {
-            printf("Demonstration succeeded (%d)\n", res);
-
-            panelMessage = new cPanel();
-            panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
-            panelMessage->setTransparencyLevel(0.8);
-            panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
-            panelMessage->setSize(width, height * 0.2);
-            panelMessage->setLocalPos(0, height * 0.4);
-            workspace->addVisualComponent(panelMessage);
-
-            cFontPtr font = NEW_CFONTCALIBRI20();
-            labelMessage = new cLabel(font);
-            labelMessage->m_fontColor.setWhite();
-
-            labelMessage->setText("Demonstration succeeded.");
-            labelMessage->setFontScale(1.5 / 500.0 * height);
-            labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
-
-            workspace->addVisualComponent(labelMessage);
-            sensorForce = cVector3d(0.0, 0.0, 0.0);
-            sensorTorque = cVector3d(0.0, 0.0, 0.0);
-            worldRunning = false;
-        }
-        if (res < 0) {
-            printf("Demonstration failed (%d)\n", res);
-
-            panelMessage = new cPanel();
-            panelMessage->setColor(cColorf(0.0, 0.0, 0.0));
-            panelMessage->setTransparencyLevel(0.8);
-            panelMessage->setCornerRadius(height / 100, height / 100, height / 100, height / 100);
-            panelMessage->setSize(width, height * 0.2);
-            panelMessage->setLocalPos(0, height * 0.4);
-            workspace->addVisualComponent(panelMessage);
-
-            cFontPtr font = NEW_CFONTCALIBRI20();
-            labelMessage = new cLabel(font);
-            labelMessage->m_fontColor.setRed();
-            if (res == -1) labelMessage->setText("Tool touched flowing iron, demonstration failed.");
-            if (res == -2) labelMessage->setText("Tool touched pouring iron, demonstration failed.");
-            if (res == -3) labelMessage->setText("Excessive force occured, demonstration failed.");
-            if (res == -4) labelMessage->setText("Excessive torque occured, demonstration failed.");
-
-            labelMessage->setFontScale(1.5 / 500.0 * height);
-            labelMessage->setLocalPos((int)(0.5 * (width - labelMessage->getTextWidth())), (int)(0.5 * (height - labelMessage->getTextHeight())));
-
-            workspace->addVisualComponent(labelMessage);
-            sensorForce = cVector3d(0.0, 0.0, 0.0);
-            sensorTorque= cVector3d(0.0, 0.0, 0.0);
-            worldRunning = false;
-        }
-#endif
-
     }
 
     // exit haptics thread
